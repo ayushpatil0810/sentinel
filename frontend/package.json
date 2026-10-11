@@ -10,12 +10,14 @@
     "format": "oxfmt"
   },
   "dependencies": {
+    "cytoscape": "^3.34.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^8.4.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
+    "@types/cytoscape": "^3.31.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

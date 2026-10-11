@@ -48,7 +48,7 @@ def list_approvals(
 
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     sql = f"""
-        SELECT approval_id, kind, status, requester, created_at, expires_at
+        SELECT approval_id, kind, status, requester, created_at, expires_at, action_id
         FROM approvals
         {where}
         ORDER BY created_at DESC
@@ -57,6 +57,29 @@ def list_approvals(
     items = []
     for r in rows:
         summary = f"Approval for {r['kind']}"
+        if r["kind"] == "action" and r["action_id"]:
+            act = fetchone(
+                conn,
+                "SELECT action_type, target FROM actions WHERE action_id = ?",
+                (r["action_id"],),
+            )
+            if act:
+                summary = (
+                    f"{act['action_type']} to {act['target']}"
+                    if act["target"]
+                    else act["action_type"]
+                )
+        elif r["kind"] == "policy.update":
+            prop = fetchone(
+                conn,
+                "SELECT note FROM policy_proposals WHERE approval_id = ?",
+                (r["approval_id"],),
+            )
+            if prop and prop["note"]:
+                summary = f"Policy proposal: {prop['note']}"
+        elif r["kind"] == "ingress_review":
+            summary = f"Ingress review: {r['action_id']}"
+
         items.append({
             "approval_id": r["approval_id"],
             "kind": r["kind"],
@@ -91,6 +114,9 @@ def get_approval_details(
             if llm_sig:
                 llm_summary = {
                     "text": llm_sig.get("summary", ""),
+                    "summary": llm_sig.get("summary", ""),
+                    "risk_flags": llm_sig.get("risk_flags", []),
+                    "suggested_outcome": llm_sig.get("suggested_outcome", "hold"),
                     "label": "advisory",
                     "available": True,
                 }
@@ -101,6 +127,16 @@ def get_approval_details(
                     "available": False,
                 }
 
+            rule_ids = json.loads(act_row["rule_ids_json"])
+            rule_reasons: dict[str, str] = {}
+            try:
+                from backend.app.core.policy import get_engine
+                pol = get_engine().load_active_policy()
+                all_rules = {r.get("id"): r.get("reason", "") for r in (pol.get("action_rules", []) + pol.get("policy_rules", []))}
+                rule_reasons = {rid: all_rules.get(rid, "") for rid in rule_ids if rid in all_rules}
+            except Exception:
+                pass
+
             review = {
                 "action": {
                     "action_id": act_row["action_id"],
@@ -108,8 +144,12 @@ def get_approval_details(
                     "arguments": json.loads(act_row["arguments_json"]),
                     "target": act_row["target"],
                 },
+                "fingerprint": act_row["fingerprint"],
+                "decision_path": act_row["decision_path"],
                 "llm_summary": llm_summary,
-                "rule_ids": json.loads(act_row["rule_ids_json"]),
+                "llm": llm_sig,
+                "rule_ids": rule_ids,
+                "rule_reasons": rule_reasons,
                 "taint_level": signals.get("taint_level", 0),
                 "blast": signals.get("blast", {}),
             }
@@ -120,6 +160,7 @@ def get_approval_details(
             review = {
                 "diff": json.loads(prop["diff_json"]),
                 "note": prop["note"],
+                "fingerprint": prop["fingerprint"],
             }
 
     elif ap["kind"] == "ingress_review":
@@ -133,6 +174,20 @@ def get_approval_details(
     res = dict(ap)
     res["used"] = bool(res["used"])
     res["review"] = review
+
+    # Retrieve comment from decision ledger entry if decided
+    res["comment"] = None
+    if res.get("status") in ("approved", "rejected", "consumed"):
+        ledg_row = fetchone(
+            conn,
+            """SELECT reason FROM ledger 
+               WHERE subject = ? AND event_type IN ('approval.granted', 'approval.rejected')
+               ORDER BY seq DESC LIMIT 1""",
+            (f"approval:{approval_id}",),
+        )
+        if ledg_row and ledg_row["reason"]:
+            res["comment"] = ledg_row["reason"]
+
     return res
 
 
