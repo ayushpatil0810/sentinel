@@ -1,0 +1,10 @@
+{
+  "description": "Enhance AI agent security with a control plane that screens inputs, manages actions, and assesses breach risks, ensuring safe operations for users.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
