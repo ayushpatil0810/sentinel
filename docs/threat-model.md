@@ -62,6 +62,11 @@ Each mitigation cites requirement IDs and a test from `test-plan.md`.
 | TM-22 | Approver fatigue or rubber-stamping | ADV-6 | AG-15 shows exact arguments and rule reasons. Holds are rare because allow rules cover routine work. | UI-03 checks | Humans can still approve a harmful action. Sentinel makes it visible and attributable, not impossible. |
 | TM-23 | Canary appears in a log or screenshot | ADV-3 | LG-04: redaction before write, digests instead of values. A test scans the DB for all encodings of the canaries. | T-LG-06 | Excerpts of near-secret text could still reveal context. |
 | TM-24 | Indirect leak through allowed channels (`web.fetch` URL query string, `update_account` free text) | ADV-4 | Egress scan on every argument (X-05). `AG-R-H08` holds fetches in flagged sessions. | T-X-05 | Low-bandwidth covert channels through allowed arguments. |
+| TM-25 | Prompt injection / jailbreak via Live LLM in agent runtime | ADV-1, ADV-2 | AG-17..AG-20: LLM tool calls intercepted and evaluated by ActionGate. PromptShield pre-screens ingesting tools. Even a fully compromised model cannot execute an unapproved action. | T-LLM-05, T-AG-10 | Output phrasing from LLM can still deceive user, but no simulated side-effect executes without passing ActionGate. |
+| TM-26 | LLM API key exfiltration or tampering | ADV-3, ADV-4 | Secrets stored only in server environment, never logged, never stored in DB or ledger, never returned in API responses. `.env` gitignored. | T-LG-06, T-LLM-02 | Host environment compromise (out of scope). |
+| TM-27 | Denial of service / latency attack via external LLM provider | ADV-1, ADV-2 | LA-02, LA-08, LA-09: hard timeout `LLM_TIMEOUT_SECONDS`, circuit breaker, automatic fallback to `ScriptedAgent` simulation with `agent_source = simulated`. | T-LA-02, T-LLM-04 | User receives simulated responses until provider recovers. |
+| TM-28 | Unauthorized modification of LLM settings or kill switch | ADV-4, ADV-5 | AU-05, LA-07: settings endpoints are admin-only on the human plane. Agent credentials and non-admin tokens get 403. Every setting change is ledgered. | T-AU-05, T-LLM-02 | Admin credentials compromised. |
+| TM-29 | Requesters accessing admin dashboards or approving actions | ADV-5 | AU-05, AU-06: server-side role checks reject requesters on approver/admin endpoints with 403 `auth.forbidden_role`. Seeded login routes by role. | T-AU-05, T-AG-07 | Collusion between human accounts. |
 
 ## 5. Required discussions
 
@@ -85,6 +90,9 @@ BreachPath analyzes the model the user entered. If reality differs, results are 
 
 ### 5.7 Detector false-negative risk
 Reported, not hidden. The benchmark includes known-hard cases (paraphrase, multi-turn, non-English, obfuscation) and lists every miss on the test split with an explanation. The design assumption is that detection will fail sometimes, so action gating is independent of it.
+
+### 5.8 Live LLM agency vs deterministic controls
+Sentinel treats real LLMs (such as OpenAI models) as probabilistic, untrusted proposal generators. When user messages prompt the agent runtime, the LLM emits candidate tool calls. ActionGate intercepts these calls before execution and subjects them to deterministic schema validation, recipient restrictions, canary scans, blast radius evaluation, and policy rules. Ingesting tools (`browse_page`, `read_reviews`) are screened by PromptShield before the model ever sees the fetched data. Thus, indirect injections inside retrieved content are filtered before model ingestion, and any residual malicious steering is blocked at ActionGate.
 
 ## 6. What Sentinel does not defend against
 

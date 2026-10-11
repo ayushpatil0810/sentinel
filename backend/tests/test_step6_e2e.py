@@ -36,9 +36,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 @pytest.fixture(autouse=True)
 def enable_demo_mode():
     orig_demo = settings.demo_mode
+    orig_db = settings.db
     settings.demo_mode = True
     yield
     settings.demo_mode = orig_demo
+    settings.db = orig_db
+    close_connection()
 
 
 @pytest.mark.req("DEMO-01")

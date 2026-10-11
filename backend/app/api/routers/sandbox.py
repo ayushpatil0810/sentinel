@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from backend.app.actiongate.approvals import decide_approval
 from backend.app.actiongate.gateway import execute_action, propose_action
+from backend.app.actiongate.runtime import get_runtime
 from backend.app.breachpath.changes import apply_graph_changes
 from backend.app.breachpath.remediation import preview_remediation
 from backend.app.breachpath.search import find_routes
@@ -95,54 +96,41 @@ def post_sandbox_message(
         source_ref="sandbox:message",
     )
 
-    steps: list[dict[str, Any]] = [
-        {
-            "kind": "ingress",
-            "request_id": screen_res.request_id,
-            "outcome": screen_res.outcome,
-            "text": screen_res.text_for_model or screen_res.reason,
-        }
-    ]
+    ingress_step = {
+        "kind": "ingress",
+        "request_id": screen_res.request_id,
+        "outcome": screen_res.outcome,
+        "text": screen_res.text_for_model or req.text or screen_res.reason,
+    }
 
     if screen_res.outcome in ("block", "escalate"):
-        steps.append({
+        reply_step = {
             "kind": "reply",
             "request_id": next_id("req_"),
             "outcome": screen_res.outcome,
             "text": f"Blocked by Sentinel: {screen_res.reason}",
-        })
-        return {"steps": steps}
+            "agent_source": "live",
+        }
+        return {
+            "agent_source": "live",
+            "iterations": 0,
+            "steps": [ingress_step, reply_step],
+        }
 
-    # 2. Simulated agent reaction: if message implies reading records
-    text_lower = req.text.lower()
-    if "order" in text_lower or "customer" in text_lower or "list" in text_lower:
-        act_res = propose_action(
-            agent_id=s_row["agent_id"],
-            session_id=req.session_id,
-            action_type="db.read",
-            arguments={"resource": "asset:customer_db", "limit": 10},
-        )
-        steps.append({
-            "kind": "action",
-            "request_id": act_res.get("request_id", next_id("req_")),
-            "outcome": act_res["outcome"],
-            "text": f"Proposed db.read on asset:customer_db: {act_res['outcome']} ({act_res.get('reason', '')})",
-        })
-        steps.append({
-            "kind": "reply",
-            "request_id": next_id("req_"),
-            "outcome": "allow" if act_res["outcome"] == "allow" else act_res["outcome"],
-            "text": "Fetched 10 customer records." if act_res["outcome"] == "allow" else "Action requires human approval.",
-        })
-    else:
-        steps.append({
-            "kind": "reply",
-            "request_id": next_id("req_"),
-            "outcome": "allow",
-            "text": f"Processed: {screen_res.text_for_model}",
-        })
+    # 2. SupportBot Agent Runtime with tool loop (AG-17..AG-20, LA-09)
+    runtime = get_runtime()
+    run_res = runtime.run_turn(
+        session_id=req.session_id,
+        agent_id=s_row["agent_id"],
+        user_text=screen_res.text_for_model or req.text,
+    )
 
-    return {"steps": steps}
+    all_steps = [ingress_step] + run_res.steps
+    return {
+        "agent_source": run_res.agent_source,
+        "iterations": run_res.iterations,
+        "steps": all_steps,
+    }
 
 
 @router.post("/load-review")

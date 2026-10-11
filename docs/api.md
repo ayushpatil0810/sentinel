@@ -29,13 +29,18 @@ A decision returning `block` is HTTP 200 with `outcome: "block"`. It is a succes
 
 | Capability | requester (alice) | approver (bob) | admin (admin, dana) |
 | --- | --- | --- | --- |
-| Login, read all dashboards, run lab scan, benchmark, tests, LLM mode | yes | yes | yes |
-| Create session, use sandbox | yes | yes | yes |
-| Decide `action` and `ingress_review` approvals (never own) | no | yes | yes |
+| Login and view assigned dashboard | yes (`/user`) | yes (`/user`) | yes (`/admin`) |
+| Chat with SupportBot, create sessions | yes | yes | yes |
+| View own session requests and status | yes | yes | yes |
+| Approvals queue: decide `action` & `review` (never own) | no | yes | yes |
 | Reset session taint | no | yes | yes |
-| Graph upload, change, apply remediation | no | no | yes |
-| Propose policy | no | no | yes |
-| Decide `policy.update` approvals (never own) | no | no | yes |
+| Policy editor: propose changes | no | no | yes |
+| Dual-admin policy approval (`policy.update`, never own) | no | no | yes (dana for admin, admin for dana) |
+| Attack graph upload, changes, remediation apply | no | no | yes |
+| Audit ledger full view and verification | no | no | yes |
+| PromptShield benchmark run & test report | no | no | yes |
+| LLM settings (GET/PUT), connection test (POST) | no | no | yes |
+| Kill-the-LLM mode toggle (`POST /llm/mode`) | no | no | yes |
 | Demo reset and tamper (demo mode only) | no | no | yes |
 
 ---
@@ -111,7 +116,27 @@ Status 409 for `approval.fingerprint_mismatch`, `approval.not_approved`, `approv
 **`POST /api/v1/sessions`** (any human). Request `{"agent_id":"supportbot"}`. Response 201 `{"session_id":"sess_ab12cd34","owner_user_id":"alice","taint_level":0}`. Error 404 `agent.not_found`.
 **`GET /api/v1/sessions/{id}`** (any human). Response includes `taint_reasons`. Error 404.
 **`POST /api/v1/sessions/{id}/taint/reset`** (approver, admin). Request `{"reason":"Reviewed, content removed"}`. Response `{"taint_level":0}`. Error 403 `auth.forbidden_role` for requester.
-**`POST /api/v1/sandbox/message`** (any human). Request `{"session_id":"sess_ab12cd34","text":"Show me my latest orders"}`. The runner screens the text through ingress (origin `user`), then runs the agent policy. Response `{"steps":[{"kind":"ingress|action|reply","request_id","outcome","text"}]}`. Error 404.
+**`POST /api/v1/sandbox/message`** (any human). Request `{"session_id":"sess_ab12cd34","text":"Show me my latest orders"}`.
+Execution pipeline:
+1. User prompt screened via PromptShield (`source_tier = user`). Block or escalate terminates early.
+2. If allowed or sanitized, passed to SupportBot Agent Runtime with the 6 registered tool definitions.
+3. Ingesting tools (`browse_page`, `read_reviews`): fetched content is screened via PromptShield *before* being fed back to the model.
+4. Action tools: intercepted and evaluated by ActionGate `propose()`. Result (`allowed`, `blocked`, `held`) returned to model as tool result.
+5. Autonomous loop completes (up to 5 iterations). If live LLM fails or errors, automatically falls back to `ScriptedAgent`.
+Response 200:
+```json
+{
+  "agent_source": "live",
+  "iterations": 2,
+  "steps": [
+    {"kind": "ingress", "request_id": "req_000001", "outcome": "allow", "text": "Show me my latest orders"},
+    {"kind": "tool_call", "tool_name": "query_customers", "arguments": {"limit": 5}},
+    {"kind": "action", "request_id": "req_000002", "action_id": "act_000001", "outcome": "allow", "rule_ids": ["AG-R-A01"], "decision_path": "rules"},
+    {"kind": "reply", "text": "Here are your recent orders...", "agent_source": "live"}
+  ]
+}
+```
+If auto-fallback triggered: `"agent_source": "simulated"`, and `agent.fallback_to_simulation` is ledgered. Error 404 `session.not_found`.
 **`POST /api/v1/sandbox/replay`** (any human). Request `{"script_id":"demo-v1","reset":true}`. Starts the scripted replay and returns `{"session_id","steps":[{"id":"S1","title","status":"pending"}]}`. Error 404 `replay.unknown_script`.
 **`POST /api/v1/sandbox/replay/step`**. Request `{"session_id":"sess_demo0001","step_id":"S3"}`. Response `{"step_id","actor":"alice","request_ids":[...],"expected":{...},"actual":{...},"match":true}`. Error 409 `replay.out_of_order`.
 **`POST /api/v1/sandbox/load-review`**. Request `{"session_id":"...","review_id":"rv-p2"}`. Runs `read_reviews` and returns the screened result. Error 404 `review.not_found`.
@@ -186,12 +211,58 @@ Clean: `{"valid":true,"checked":131,"first_broken_seq":null,"reason":null}`. Err
 **`GET /api/v1/ledger/checkpoint`** (Stretch, LG-06). `{"head_seq","head_hash","ts","hmac"}`.
 **`POST /api/v1/demo/tamper`** (admin, demo mode). Request `{"seq":17,"field":"outcome","value":"allow"}`. Edits the row directly in SQL, bypassing the append API, to simulate an insider. Response `{"tampered_seq":17}`. Error 404 `demo.disabled`.
 
-### 2.9 LLM, registries, tests
+### 2.9 LLM settings, system status, registries, tests
 
-**`GET /api/v1/llm/mode`**. `{"mode":"ok","breaker":"closed","consecutive_failures":0}`.
-**`POST /api/v1/llm/mode`** (any human). Request `{"mode":"down"}`. Response same shape. Ledger `llm.mode_changed`. Error 422 for unknown mode.
+**`GET /api/v1/system/status`** (any human). System operational status. Response 200:
+```json
+{
+  "agent_mode": "live",
+  "guard_mode": "live",
+  "provider": "openai",
+  "provider_health": "ok",
+  "last_error": null,
+  "active_model": "gpt-4o-mini"
+}
+```
+
+**`GET /api/v1/admin/llm/settings`** (admin only). Response 200:
+```json
+{
+  "agent_mode": "live",
+  "guard_mode": "live",
+  "model": "gpt-4o-mini",
+  "timeout_seconds": 3.0,
+  "has_api_key": true
+}
+```
+API key value is strictly omitted. Error 403 `auth.forbidden_role` for non-admins.
+
+**`PUT /api/v1/admin/llm/settings`** (admin only). Request:
+```json
+{
+  "agent_mode": "simulation",
+  "guard_mode": "rules_only",
+  "model": "gpt-4o-mini",
+  "timeout_seconds": 3.0
+}
+```
+Validates modes (`agent_mode` in `["live","simulation"]`, `guard_mode` in `["live","rules_only"]`). Updates runtime configuration, writes ledger event `llm.settings_changed`. Returns updated settings. Errors: 403 `auth.forbidden_role`, 422 `validation.failed`.
+
+**`POST /api/v1/admin/llm/test`** (admin only). Round-trip connectivity probe to active provider. Response 200:
+```json
+{
+  "success": true,
+  "latency_ms": 235,
+  "model": "gpt-4o-mini",
+  "error": null
+}
+```
+Writes ledger event `llm.connection_tested`. Error 403 `auth.forbidden_role`.
+
+**`GET /api/v1/llm/mode`** (any human). `{"mode":"ok","breaker":"closed","consecutive_failures":0}`.
+**`POST /api/v1/llm/mode`** (admin only). Request `{"mode":"down"}`. Sets mock mode (the "kill the LLM" toggle). Response same shape. Ledger `llm.mode_changed`. Errors: 403 `auth.forbidden_role`, 422 for unknown mode.
 **`GET /api/v1/registries/agents`**, **`GET /api/v1/registries/action-types`**. Read-only lists. Error 401.
-**`POST /api/v1/tests/run`** (any human). Starts pytest in the background. Response 202 `{"run_id"}`. Error 409 `tests.running`.
+**`POST /api/v1/tests/run`** (admin only). Starts pytest in the background. Response 202 `{"run_id"}`. Errors: 403 `auth.forbidden_role`, 409 `tests.running`.
 **`GET /api/v1/tests/report`**. `{"run_id","ts","totals":{"passed","failed","skipped"},"by_requirement":{"AG-01":[{"test":"test_unregistered_agent_blocked","status":"passed","duration_ms":12}]},"untested_requirements":[]}`. Error 404 `tests.none`.
 
 ### 2.10 Health

@@ -7,6 +7,9 @@ Set proper values in production via environment or docker-compose.yml.
 
 from __future__ import annotations
 
+import os
+
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -26,6 +29,25 @@ class Settings(BaseSettings):
     # LLM mock mode (LA-03): ok | says_safe_always | timeout | garbage | down
     llm_mode: str = "ok"
 
+    # OpenAI & LLM Provider Configuration
+    openai_api_key: str = Field(
+        default_factory=lambda: os.environ.get("OPENAI_API_KEY", os.environ.get("SENTINEL_OPENAI_API_KEY", "")),
+    )
+    openai_model: str = Field(
+        default_factory=lambda: os.environ.get("OPENAI_MODEL", os.environ.get("SENTINEL_OPENAI_MODEL", "gpt-4o-mini")),
+    )
+    llm_timeout_seconds: float = Field(
+        default_factory=lambda: float(os.environ.get("LLM_TIMEOUT_SECONDS", os.environ.get("SENTINEL_LLM_TIMEOUT_SECONDS", "3.0"))),
+    )
+
+    # Runtime modes: live | simulation (agent), live | rules_only (guard)
+    agent_mode: str = Field(
+        default_factory=lambda: os.environ.get("SENTINEL_AGENT_MODE", os.environ.get("AGENT_MODE", "simulation")),
+    )
+    guard_mode: str = Field(
+        default_factory=lambda: os.environ.get("SENTINEL_GUARD_MODE", os.environ.get("GUARD_MODE", "live")),
+    )
+
     # Random seed for deterministic data generation (SD-07)
     seed: int = 1337
 
@@ -40,3 +62,4 @@ class Settings(BaseSettings):
 
 # Module-level singleton; tests may monkeypatch attributes
 settings = Settings()
+

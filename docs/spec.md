@@ -11,6 +11,9 @@ Every requirement has a stable ID, a priority (**MVP** or **Stretch**), and a te
 | Timestamps | UTC ISO-8601 with milliseconds and `Z`. |
 | Outcome strictness | `block` (3) > `hold` = `escalate` (2) > `sanitize` (1) > `allow` (0). |
 | Decision path | `rules` = LLM not consulted. `rules+llm` = valid LLM signal consulted. `fallback` = LLM needed or attempted and failed. |
+| Agent source | `live` = produced by live model execution. `simulated` = produced by deterministic ScriptedAgent fallback. Recorded on ledger entries, actions, and API responses. |
+| Agent mode | `live` = execute via configured LLM provider. `simulation` = execute via deterministic ScriptedAgent. |
+| Guard mode | `live` = Guard LLM advisory screening active. `rules_only` = Guard LLM bypassed, deterministic rules only. |
 | Error shape | `{ "error": { "code", "message", "details", "request_id" } }` (see `api.md`). |
 | Clock | Injected `Clock` object so tests and replay control time. |
 
@@ -94,23 +97,35 @@ Condition grammar: `all`, `any`, `not`, and leaves `{field, op, value}` with ops
 
 Verification detail: for a deleted row `k` in the middle, row `k+1` arrives where `k` is expected, so `first_broken_seq = k`, reason `seq_gap`. For an edited row `k` the recomputed hash differs, so `first_broken_seq = k`. For two rows with swapped seq values `i < j`, the row now at seq `i` fails its `prev_hash` or hash check, so `first_broken_seq = i`. Deleting only the last row is not detectable without an external head hash (LG-06).
 
-### 1.3 LLM adapter (`core/llm.py`)
+### 1.3 LLM provider layer, adapter, and runtime (`core/llm.py`, `core/providers/`)
+
+Sentinel defines a unified `LLMProvider` interface with three concrete implementations:
+1. `OpenAIProvider`: Calls OpenAI models via the official OpenAI Python SDK. Uses structured outputs (`response_format={"type": "json_schema", ...}`) and function calling (`tools=[...]`). Configured via environment variables `OPENAI_API_KEY`, `OPENAI_MODEL`, and `LLM_TIMEOUT_SECONDS`. Secrets come strictly from env, are never logged, and are never ledgered. A `.env.example` template is provided and `.env` is gitignored.
+2. `MockProvider`: Deterministic in-memory test provider supporting five modes (`ok`, `says_safe_always`, `timeout`, `garbage`, `down`). Tests never touch the network.
+3. `ScriptedAgent`: Deterministic simulation engine reproducing canned SupportBot responses and actions from fixed scenario fixtures (used for replay and fallback).
 
 | ID | Pri | Requirement |
 | --- | --- | --- |
-| LA-01 | MVP | Interface `classify_input(text, tier) -> ClassifyResult \| None` and `summarize_intent(action) -> IntentResult \| None`. Output is validated against JSON Schema (`data-models.md` section 7). Invalid means `None`. |
-| LA-02 | MVP | Hard timeout 3000 ms. Circuit breaker opens after 3 consecutive failures for 30 s, then half-open with one probe. While open, calls return `None` immediately. Each failure writes an `llm.fallback` ledger event with reason (`timeout`, `exception`, `invalid_json`, `schema_violation`, `breaker_open`). |
-| LA-03 | MVP | Mock adapter modes: `ok`, `says_safe_always`, `timeout` (sleeps past the timeout), `garbage` (returns non-JSON), `down` (raises). `ok` answers from `seed/llm_fixtures.json` keyed by SHA-256 of the input text, else a keyword heuristic (D-29). `says_safe_always` returns `benign`/`allow` with confidence 99 for everything. |
-| LA-04 | MVP | **Monotonic tightening.** The engine merges the LLM signal only upward: actions `allow -> hold`, ingress `allow -> escalate` and `sanitize -> escalate`. Never `block`, never loosening (D-07). A property test feeds random signals and asserts `strict(final) >= strict(rules_only)`. |
+| LA-01 | MVP | Interface `classify_input(text, tier) -> ClassifyResult | None` and `summarize_intent(action) -> IntentResult | None`. Output is validated against JSON Schema (`data-models.md` section 7). Invalid means `None`. |
+| LA-02 | MVP | Hard timeout `LLM_TIMEOUT_SECONDS` (default 3000 ms). Circuit breaker opens after 3 consecutive failures for 30 s, then enters half-open state with one probe. While open, calls return `None` immediately. Each failure writes an `llm.fallback` ledger event with reason (`timeout`, `exception`, `invalid_json`, `schema_violation`, `breaker_open`). |
+| LA-03 | MVP | Mock adapter modes: `ok`, `says_safe_always`, `timeout` (sleeps past timeout), `garbage` (returns non-JSON), `down` (raises exception). `ok` answers from `seed/llm_fixtures.json` keyed by SHA-256 of input text, else heuristic. `says_safe_always` returns `benign`/`allow` with confidence 99 for everything. |
+| LA-04 | MVP | **Monotonic tightening.** The engine merges the LLM signal only upward: actions `allow -> hold`, ingress `allow -> escalate` and `sanitize -> escalate`. Never `block`, never loosening (D-07). A property test asserts `strict(final) >= strict(rules_only)`. |
 | LA-05 | MVP | `POST /api/v1/llm/mode` sets the mock mode (the "kill the LLM" toggle). Each change writes `llm.mode_changed`. |
+| LA-06 | MVP | **Provider interface and OpenAI integration.** `LLMProvider` exposes structured classification, intent summarization, and function calling. `OpenAIProvider` uses OpenAI SDK with temperature 0. Untrusted text is passed exclusively as data fields inside structured payloads, never as prompt instructions. |
+| LA-07 | MVP | **Runtime modes.** System maintains runtime modes `AGENT_MODE` (`live|simulation`) and `GUARD_MODE` (`live|rules_only`). Admins can query via `GET /api/v1/admin/llm/settings` and modify via `PUT /api/v1/admin/llm/settings`. Every change is ledgered as `llm.settings_changed`. Non-admins receive 403. |
+| LA-08 | MVP | **Guard LLM structured output and circuit breaker.** Guard LLM invokes `classify_input` and `summarize_intent` with strict JSON schemas. Invalid output, timeout, or exception falls back to rules-only with `decision_path = fallback`. When `GUARD_MODE=rules_only`, Guard LLM is bypassed and `decision_path = rules`. |
+| LA-09 | MVP | **Auto-fallback on live agent failure.** If the live agent loop encounters an unhandled exception, network timeout, rate limit, or invalid output from the provider, it immediately switches to `ScriptedAgent` simulation for that session turn, sets `agent_source = "simulated"`, surfaces a `SIMULATED` badge in API responses, and writes an `agent.fallback_to_simulation` ledger event. |
+| LA-10 | MVP | **Connection test.** `POST /api/v1/admin/llm/test` performs a lightweight round-trip connectivity probe to the active LLM provider. Returns latency, active model, and success/error status. Ledgered as `llm.connection_tested`. |
 
 Decision-path assignment:
 
 ```
-if not policy.settings.llm.enabled:            path = "rules"
-elif rules_outcome == "block":                  path = "rules"        # D-08, LLM not consulted
+if guard_mode == "rules_only" or not policy.settings.llm.enabled:
+    path = "rules"
+elif rules_outcome == "block":
+    path = "rules"        # D-08, LLM not consulted
 else:
-    sig = adapter.call(...)                      # may return None
+    sig = provider.classify_input(...) or provider.summarize_intent(...)
     path = "rules+llm" if sig is not None else "fallback"
 ```
 
@@ -123,14 +138,17 @@ else:
 | SS-03 | MVP | Only a human with role `approver` or `admin` can reset taint via `POST /api/v1/sessions/{id}/taint/reset`. Ledgered as `session.taint_reset` with the actor. |
 | SS-04 | MVP | Sessions are created only on the human plane (D-02). An agent credential can read its own session but a session belonging to another agent returns 404. |
 
-### 1.5 Auth (`api/auth.py`)
+### 1.5 Auth and role-based access control (`api/auth.py`)
 
 | ID | Pri | Requirement |
 | --- | --- | --- |
 | AU-01 | MVP | Two planes per `architecture.md` section 3. Agent identity comes from the credential only. A body field `agent_id` is rejected if present. |
 | AU-02 | MVP | An agent credential presented to any `/api/v1` route returns 403 `auth.wrong_plane` and writes `auth.refused`. A human token on `/agent/v1` returns the same. |
-| AU-03 | MVP | Roles: `requester` (alice), `approver` (bob, admin, dana), `admin` (admin, dana). Capability table in `api.md` section 1. |
+| AU-03 | MVP | Roles: `requester` (alice), `approver` (bob, admin, dana), `admin` (admin, dana). Capability matrix in `api.md` section 0. |
 | AU-04 | MVP | Execution tokens: `HMAC(EXEC_KEY, canonical_json({action_id, fingerprint, nonce, exp}))`, TTL 60 s, single use. Executors verify signature, expiry, and nonce use. Without a valid token they raise `ExecutorRefused`, which writes `executor.refused`. |
+| AU-05 | MVP | **Server-side role enforcement.** Every `/api/v1` route enforces role requirements server-side via dependency injection. Requesters and approvers calling admin endpoints receive 403 `auth.forbidden_role` (ledgered as `auth.refused`). |
+| AU-06 | MVP | **Role-routed login.** Authenticated login `POST /api/v1/auth/login` validates credentials and routes the client to the appropriate dashboard (`/user` for requester/approver, `/admin` for admin). Development quick-switch is enabled only when `DEMO_MODE=1`. |
+| AU-07 | MVP | **Dual-admin policy gate.** System seeds two distinct admins (`admin` and `dana`). A policy proposed by `admin` cannot be approved by `admin`, and must be approved by `dana` (and vice-versa). |
 
 ### 1.6 Ledger event catalogue
 
@@ -138,9 +156,9 @@ else:
 | --- | --- |
 | `auth` | `auth.login`, `auth.refused` |
 | `promptshield` | `ingress.screened`, `ingress.review.released`, `ingress.review.rejected`, `session.taint_changed`, `session.taint_reset`, `promptshield.lab_scan` |
-| `actiongate` | `action.decided`, `action.executed`, `action.execution_refused`, `approval.requested`, `approval.granted`, `approval.rejected`, `approval.refused.self`, `approval.refused.role`, `approval.refused.stale`, `approval.expired`, `executor.refused` |
+| `actiongate` | `action.decided`, `action.executed`, `action.execution_refused`, `approval.requested`, `approval.granted`, `approval.rejected`, `approval.refused.self`, `approval.refused.role`, `approval.refused.stale`, `approval.expired`, `executor.refused`, `agent.fallback_to_simulation` |
 | `breachpath` | `graph.uploaded`, `graph.upload_rejected`, `graph.changed`, `graph.derived_entry_points`, `graph.remediation_applied` |
-| `policy` | `policy.proposed`, `policy.activated`, `policy.proposal_rejected`, `llm.fallback`, `llm.mode_changed`, `benchmark.run` |
+| `policy` | `policy.proposed`, `policy.activated`, `policy.proposal_rejected`, `llm.fallback`, `llm.mode_changed`, `llm.settings_changed`, `llm.connection_tested`, `benchmark.run` |
 
 `llm.fallback` is written by the calling module with `module` set to the caller (`actiongate` or `promptshield`).
 
@@ -303,6 +321,23 @@ execute(agent_id, action_id, submitted):
 | Executor fails after token issued | Approval stays consumed. `action.executed` records `status=failed`. The agent must re-propose. |
 | Duplicate `execute` calls | Second call gets 409 `approval.already_used`. |
 | Hold on an action the agent re-proposes unchanged | A new action and approval is created. Pending duplicates are linked by `duplicate_of` in the payload (display only). |
+
+### 2.6 Agent runtime and tool execution loop (`actiongate/runtime.py`)
+
+The SupportBot agent runtime exposes the six registered tools to the LLM as function definitions:
+1. `read_reviews`: Ingests customer product reviews (`output_tier = tool_output`).
+2. `browse_page`: Fetches external web pages (`output_tier = retrieved_document`).
+3. `query_customers`: Queries customer database table (`output_tier = tool_output`).
+4. `update_account`: Updates customer account status/flags.
+5. `delete_records`: Deletes rows from specified resource.
+6. `email.send`: Sends an email to specified recipients.
+
+| ID | Pri | Requirement |
+| --- | --- | --- |
+| AG-17 | MVP | **Function calling tool schemas.** The six SupportBot tools are exposed to OpenAI function calling using strict JSON schemas derived from the Action-Type registry. |
+| AG-18 | MVP | **PromptShield pre-screening of ingesting tools.** When the model invokes `browse_page` or `read_reviews`, the mock executor fetches the untrusted payload and passes it directly to `promptshield.screen()` BEFORE the content is returned to the model. If `sanitize`, sanitized text is returned; if `block` or `escalate`, a redaction/refusal note is returned to the model. |
+| AG-19 | MVP | **ActionGate interception and tool result feedback.** Every action tool call emitted by the model is intercepted as a proposed action and routed to `actiongate.propose()`. Gateway decisions (`allow`, `hold`, `block`) are returned to the model as function call execution results (including `approval_id`, `reason`, and `status`), allowing the model to summarize the action status for the user. |
+| AG-20 | MVP | **Bounded autonomous loop.** The agent runtime executes an autonomous loop with a hard ceiling of max iterations (5) and max tokens. If the limit is reached, execution terminates safely with an explanatory message to the user. |
 
 ---
 
@@ -571,10 +606,10 @@ Composition, schema, and metrics are specified in `seed-data.md` section 6 and `
 | --- | --- |
 | Policy engine | PE-01..PE-07 |
 | Ledger | LG-01..LG-07 (LG-06 Stretch) |
-| LLM adapter | LA-01..LA-05 |
+| LLM adapter & Provider | LA-01..LA-10 |
 | Session | SS-01..SS-04 |
-| Auth | AU-01..AU-04 |
-| ActionGate | AG-01..AG-16 |
+| Auth & RBAC | AU-01..AU-07 |
+| ActionGate & Agent Runtime | AG-01..AG-20 |
 | BreachPath | BP-01..BP-18 (BP-13, BP-16 Stretch) |
 | PromptShield | PS-01..PS-16 |
 | Cross-module | X-01..X-07 (X-04 Stretch) |

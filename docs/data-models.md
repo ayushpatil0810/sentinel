@@ -68,6 +68,7 @@ CREATE TABLE actions (
   policy_version INTEGER NOT NULL,
   signals_json TEXT NOT NULL,             -- impact, blast, taint, llm summary (advisory)
   status TEXT NOT NULL,                   -- decided | executed | execution_failed | superseded
+  agent_source TEXT NOT NULL DEFAULT 'live' CHECK (agent_source IN ('live','simulated')),
   created_at TEXT NOT NULL,
   executed_at TEXT
 );
@@ -113,6 +114,7 @@ CREATE TABLE ledger (
   policy_version INTEGER NOT NULL,
   payload_ref TEXT,
   payload_digest TEXT NOT NULL,
+  agent_source TEXT NOT NULL DEFAULT 'live' CHECK (agent_source IN ('live','simulated')),
   prev_hash TEXT NOT NULL,
   hash TEXT NOT NULL UNIQUE
 );
@@ -150,6 +152,13 @@ CREATE TABLE marketing_prefs (contact_id INTEGER PRIMARY KEY, email TEXT, opted_
 CREATE TABLE outbox (outbox_id INTEGER PRIMARY KEY AUTOINCREMENT, action_id TEXT, ts TEXT, to_json TEXT, subject TEXT, body_excerpt TEXT, simulated INTEGER DEFAULT 1);
 CREATE TABLE fakedb_ops (op_id INTEGER PRIMARY KEY AUTOINCREMENT, action_id TEXT, ts TEXT, op TEXT, resource TEXT, record_count INTEGER, simulated INTEGER DEFAULT 1);
 CREATE TABLE exec_tokens_used (nonce TEXT PRIMARY KEY, used_at TEXT NOT NULL);
+
+CREATE TABLE system_settings (
+  setting_key TEXT PRIMARY KEY,           -- 'llm_settings'
+  setting_value_json TEXT NOT NULL,       -- {"agent_mode":"live","guard_mode":"live","model":"gpt-4o-mini","timeout_seconds":3.0}
+  updated_by TEXT NOT NULL,               -- admin user id
+  updated_at TEXT NOT NULL                -- ISO-8601 UTC timestamp
+);
 
 CREATE TABLE benchmark_runs (run_id TEXT PRIMARY KEY, ts TEXT, split TEXT, policy_version INTEGER, result_json TEXT);
 ```
@@ -487,6 +496,9 @@ Fingerprint: `766d9af15e446fd6612403548807dccded155d74b1b1bf2b4717059b07899bda`.
 | `graph.changed` | `from_version, to_version, changes, diff{removed, remaining, new}` as path IDs |
 | `policy.proposed` | `base_version, diff, fingerprint, lint_warnings` |
 | `llm.fallback` | `component, mode, reason, consecutive_failures, request_id` |
+| `llm.settings_changed` | `admin_user_id, old_settings, new_settings` |
+| `llm.connection_tested` | `admin_user_id, success, latency_ms, model, error` |
+| `agent.fallback_to_simulation` | `session_id, reason, error_type, original_mode` |
 
 ## 6. Policy document
 
@@ -519,6 +531,103 @@ The policy JSON Schema and the complete v1 are in `policy-spec.md` sections 2 an
 ```
 
 `block` is a valid suggestion but is only displayed. The engine never applies it (D-07).
+
+### 7.1 SupportBot Agent Function Calling Schemas (OpenAI Tools)
+
+```json
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "read_reviews",
+      "description": "Read product reviews submitted by customers. Output tier: tool_output.",
+      "parameters": {
+        "type": "object",
+        "required": ["product_id"],
+        "properties": {
+          "product_id": {"type": "string", "description": "Product identifier"}
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "browse_page",
+      "description": "Fetch and view an external web page. Output tier: retrieved_document.",
+      "parameters": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": {"type": "string", "description": "Full URL to browse"}
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "query_customers",
+      "description": "Query the customer records database.",
+      "parameters": {
+        "type": "object",
+        "required": ["limit"],
+        "properties": {
+          "limit": {"type": "integer", "description": "Max rows to retrieve", "maximum": 500},
+          "query": {"type": "string", "description": "Optional search term"}
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_account",
+      "description": "Update customer account status or notes.",
+      "parameters": {
+        "type": "object",
+        "required": ["customer_ids", "updates"],
+        "properties": {
+          "customer_ids": {"type": "array", "items": {"type": "integer"}, "description": "Customer IDs to update"},
+          "updates": {"type": "object", "description": "Key-value attributes to apply"}
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "delete_records",
+      "description": "Delete records from a specified database resource table.",
+      "parameters": {
+        "type": "object",
+        "required": ["resource", "record_ids"],
+        "properties": {
+          "resource": {"type": "string", "description": "Target resource identifier"},
+          "record_ids": {"type": "array", "items": {"type": "integer"}, "description": "Record IDs to remove"}
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "email_send",
+      "description": "Send an email message through the Acme mail gateway.",
+      "parameters": {
+        "type": "object",
+        "required": ["to", "subject", "body"],
+        "properties": {
+          "to": {"type": "array", "items": {"type": "string"}, "description": "Recipient email addresses"},
+          "subject": {"type": "string", "description": "Email subject header"},
+          "body": {"type": "string", "description": "Plain text message body"},
+          "resource": {"type": "string", "default": "svc:mailer", "description": "Mailer service identifier"}
+        }
+      }
+    }
+  }
+]
+```
 
 ## 8. Session
 

@@ -148,6 +148,7 @@ def propose_action(
     action_type: str,
     arguments: dict[str, Any],
     clock: Clock | None = None,
+    agent_source: str = "live",
 ) -> dict[str, Any]:
     """
     ActionGate 9-step evaluation pipeline (AG-01..AG-13).
@@ -503,6 +504,7 @@ def propose_action(
         signals=signals,
         clock=clk,
         requester=sess.owner_user_id if sess and sess.owner_user_id else agent_id,
+        agent_source=agent_source,
     )
 
 
@@ -523,6 +525,7 @@ def _record_decision(
     signals: dict[str, Any],
     clock: Clock | None = None,
     requester: str | None = None,
+    agent_source: str = "live",
 ) -> dict[str, Any]:
     """Record action decision, create approval if hold, run executor if allow, and append to ledger."""
     clk = clock or get_clock()
@@ -564,13 +567,13 @@ def _record_decision(
         conn,
         """
         INSERT INTO actions
-        (action_id, session_id, agent_id, action_type, arguments_json, target, fingerprint,
+        (action_id, session_id, agent_id, agent_source, action_type, arguments_json, target, fingerprint,
          requester, outcome, reason, rule_ids_json, decision_path, policy_version, signals_json,
          status, created_at, executed_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            action_id, session_id, agent_id, action_type, canonical_json(arguments), target, fp,
+            action_id, session_id, agent_id, agent_source, action_type, canonical_json(arguments), target, fp,
             agent_id, outcome, reason, json.dumps(rule_ids), decision_path, policy_version,
             canonical_json(signals), status, created_at, created_at if status == "executed" else None,
         ),
@@ -593,6 +596,7 @@ def _record_decision(
             "action_type": action_type,
             "target": target,
             "fingerprint": fp,
+            "agent_source": agent_source,
             "args_digest": hashlib.sha256(canonical_json(arguments).encode("utf-8")).hexdigest(),
             "signals": signals,
         },

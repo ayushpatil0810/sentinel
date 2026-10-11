@@ -39,7 +39,15 @@ def _connect(db_path: str) -> sqlite3.Connection:
 
 def get_connection() -> sqlite3.Connection:
     """Return the thread-local DB connection, creating it if necessary."""
+    needs_reconnect = False
     if not hasattr(_local, "conn") or _local.conn is None:
+        needs_reconnect = True
+    else:
+        try:
+            _local.conn.execute("SELECT 1")
+        except (sqlite3.ProgrammingError, sqlite3.OperationalError):
+            needs_reconnect = True
+    if needs_reconnect:
         _local.conn = _connect(settings.db)
         ensure_schema(_local.conn)
     return cast(sqlite3.Connection, _local.conn)
@@ -115,6 +123,7 @@ CREATE TABLE IF NOT EXISTS actions (
     action_id        TEXT PRIMARY KEY,
     session_id       TEXT NOT NULL REFERENCES sessions(session_id),
     agent_id         TEXT NOT NULL,
+    agent_source     TEXT NOT NULL DEFAULT 'live',
     action_type      TEXT NOT NULL,
     arguments_json   TEXT NOT NULL,
     target           TEXT,
@@ -271,12 +280,21 @@ CREATE TABLE IF NOT EXISTS policy_proposals (
     created_at    TEXT NOT NULL,
     status        TEXT NOT NULL DEFAULT 'pending'
 );
+
+CREATE TABLE IF NOT EXISTS system_settings (
+    setting_key        TEXT PRIMARY KEY,
+    setting_value_json TEXT NOT NULL,
+    updated_by         TEXT NOT NULL,
+    updated_at         TEXT NOT NULL
+);
 """
 
 
 def ensure_schema(conn: sqlite3.Connection) -> None:
     """Create all tables and triggers if they do not exist."""
     conn.executescript(_SCHEMA_SQL)
+    with contextlib.suppress(sqlite3.OperationalError):
+        conn.execute("ALTER TABLE actions ADD COLUMN agent_source TEXT NOT NULL DEFAULT 'live'")
     conn.commit()
 
 

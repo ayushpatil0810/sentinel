@@ -74,6 +74,11 @@ Test IDs are `T-<GROUP>-<NN>`. "Brief row" ties to the brief's section 13 table.
 | T-LA-03 | LA-03 | Each of five modes behaves as specified, including `says_safe_always` | LLM failure |
 | T-LA-04 | LA-04, AG-10 | Property test (200 random signals): final strictness is never below rules-only. LLM never produces `block` | Rules decide |
 | T-LA-05 | LA-05 | Mode change via API is ledgered. Human plane only | |
+| T-LA-06 | LA-06 | Provider interface: OpenAIProvider function calling & structured outputs with mocked HTTP transport. Secrets from env only. Tests never touch network | Provider layer |
+| T-LA-07 | LA-07 | Admin GET/PUT `/api/v1/admin/llm/settings`: updates `AGENT_MODE` and `GUARD_MODE`, non-admins receive 403, ledgers `llm.settings_changed` | LLM settings |
+| T-LA-08 | LA-08 | Guard LLM structured JSON-schema outputs at temperature 0. Untrusted content passed as data. Timeout/error yields rules-only and `decision_path = fallback` | Guard LLM |
+| T-LA-09 | LA-09 | Auto-fallback: Live agent failure triggers automatic switch to ScriptedAgent simulation, sets `agent_source = simulated`, badge `SIMULATED`, ledgers `agent.fallback_to_simulation` | Auto-fallback |
+| T-LA-10 | LA-10 | Admin POST `/api/v1/admin/llm/test`: connectivity test measures round-trip latency, ledgers `llm.connection_tested`, non-admin gets 403 | Connection test |
 | T-SS-01 | SS-01, SS-02 | Level transitions per table in `spec.md` 4.5. Clean user input never lowers taint | |
 | T-SS-02 | SS-02 | Randomized sequence of 200 inputs: taint is non-decreasing | |
 | T-SS-03 | SS-03 | Reset by agent key: 403. Reset by requester: 403. Reset by Bob: level 0 and `session.taint_reset` with actor | |
@@ -82,6 +87,9 @@ Test IDs are `T-<GROUP>-<NN>`. "Brief row" ties to the brief's section 13 table.
 | T-AU-02 | AU-01 | Human token on every `/agent/v1` route: 403. Body with `agent_id`: 422 | Auth planes |
 | T-AU-03 | AU-03 | Capability table from `api.md` section 0 as a parametrized matrix of (user, endpoint, expected status) | Auth planes |
 | T-AU-04 | AU-04, AG-11 | Executor with no token, forged signature, expired token, reused nonce, or token for a different fingerprint: all `ExecutorRefused` and `executor.refused` | Gateway bypass |
+| T-AU-05 | AU-05 | Server-side role enforcement on all `/api/v1` routes: requesters and approvers calling admin endpoints receive 403 `auth.forbidden_role` | RBAC |
+| T-AU-06 | AU-06 | Seeded login routes by role: `alice` and `bob` to `/user`, `admin` and `dana` to `/admin`. Demo quick-switch disabled when `DEMO_MODE=0` | Seeded login |
+| T-AU-07 | AU-07 | Dual-admin policy gate: admin proposing policy cannot approve own proposal; second admin `dana` must approve | Dual admin |
 
 ### 3.2 ActionGate
 
@@ -103,6 +111,10 @@ Test IDs are `T-<GROUP>-<NN>`. "Brief row" ties to the brief's section 13 table.
 | T-AG-14 | AG-14 | Single use: second execute 409 `already_used`. Expiry via clock jump: 409 `expired`. 20 parallel executes: exactly one succeeds. Tighten policy to block between approve and execute: refused | Approval binding |
 | T-AG-15 | AG-15 | `GET /approvals/{id}` includes exact arguments equal to stored, `llm_summary.label == "advisory"`. With LLM down: `available:false` | |
 | T-AG-16 | AG-16 | Re-propose a held action with one changed argument: new `action_id`, new approval, old approval cannot execute the new action | Approval binding |
+| T-AG-17 | AG-17 | Function calling tool definitions: all 6 SupportBot tools exposed with validated parameter schemas | Agent runtime |
+| T-AG-18 | AG-18 | Ingesting tool content screening: `browse_page` and `read_reviews` outputs screened by PromptShield BEFORE model return. Injected directives sanitized or blocked | Ingesting tools |
+| T-AG-19 | AG-19 | ActionGate tool call interception: all action tool calls routed through ActionGate propose; gateway decisions fed back as tool results; model cannot bypass gateway | Gateway interception |
+| T-AG-20 | AG-20 | Bounded autonomous loop: agent loop terminates safely at max iterations (5) without hanging | Loop bounds |
 
 ### 3.3 BreachPath
 
@@ -165,6 +177,8 @@ Expected values come from `seed-data.md` section 2. The graph is the seed graph 
 | T-E2E-01 | DEMO-01, DEMO-02 | Scripted replay S1..S8 produces every `expected` block from `demo-script.md`. `GET /ledger/verify` valid before S8 and invalid at the tampered seq after | |
 | T-E2E-02 | DEMO-01 | Two full replays on freshly seeded DBs produce identical sequences of (event_type, outcome, rule_ids, decision_path) | |
 | T-E2E-03 | DEMO-03 | Replay completes all 8 steps in under 60 s of machine time (human pacing is in the script) | |
+| T-E2E-04 | DEMO-01, LA-06, LA-09 | End-to-end replay executed in both simulation mode (deterministic) and live mode (with OpenAI provider mocked at HTTP boundary for CI) | Live & sim replay |
+| T-BENCH-02 | PS-08, LA-08 | Benchmark comparison run in `rules_only` vs `rules+llm` mode, reporting differences, new false positives, and misses | Benchmark comparison |
 | T-SD-01 | SD-01, SD-02, SD-03, SD-04, SD-05 | Seed contents equal the counts and edge cases in `seed-data.md` (row counts, canary placement, graph route set, 30 reviews with 5 poisoned, registries) | |
 | T-SD-02 | SD-06 | Benchmark file validates against schema. 80 cases. Split sizes. Composition counts. No duplicate texts across splits | |
 | T-SD-03 | SD-07 | Two seed runs: SHA-256 of the dump of seeded tables (excluding timestamps) is identical | |

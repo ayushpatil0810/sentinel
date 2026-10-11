@@ -1,118 +1,73 @@
 # Sentinel: UI Specification
 
-React 18, Vite, Cytoscape.js. Polling every 2 s (MVP), SSE later (Stretch). Build order follows the brief: **Sandbox, Approvals, Attack Graph, Audit, Benchmark first**. Everything else can be simple forms. Requirement IDs `UI-xx` are tested by T-UI-01 and by the replay (T-E2E-01).
+React 18, Vite, Cytoscape.js. Polling every 2 s (MVP), SSE later (Stretch). Two role-based dashboards: **User Dashboard** (for Requesters and Approvers) and **Admin Dashboard** (for Admins). Requirement IDs `UI-xx` are tested by T-UI-01 and by the replay (T-E2E-01).
 
-## 0. Shell and global behavior (UI-10, MVP)
+## 0. Shell, auth, and global behavior (UI-10, MVP)
 
 | Element | Behavior |
 | --- | --- |
-| Top bar | Product name, **user switcher** (Alice, Bob, Admin, Dana: calls `POST /auth/login` with password `demo`, keeps the token in memory), role chips, policy version, graph version, ledger head with a small verify dot (green valid, red broken, grey unknown, refreshed on load and after Verify) |
-| **Kill the LLM** toggle | Switch in the top bar. Calls `POST /llm/mode` (`ok` or `down`). A dropdown exposes the other modes (`says_safe_always`, `timeout`, `garbage`). Badge shows `LLM: ok` or `LLM: DOWN, rules only` in amber. |
+| **Authentication & Routing** | Seeded login screen (`/login`) accepts seeded users (`alice`, `bob`, `admin`, `dana` with password `demo`). On login, routes by role: `requester` and `approver` to User Dashboard (`/user`), `admin` to Admin Dashboard (`/admin`). Unauthenticated requests redirect to `/login`. |
+| **Demo Quick Switch** | Behind `DEMO_MODE=1`: Quick-switch buttons appear on the login card and top bar allowing one-click role switching. When `DEMO_MODE=0`, quick-switcher is hidden and standard login is enforced. |
+| **Top bar** | Product title, active user name, role chips, Mode badges, Kill the LLM toggle (admin only), policy/graph version, ledger verify dot, and Logout button. |
+| **Agent Mode Badge** | Displays `AGENT: LIVE` in green or `AGENT: SIMULATED` in amber. Reflects runtime `agent_mode` and auto-fallback state. |
+| **Guard Mode Badge** | Displays `GUARD: LIVE` in purple or `GUARD: RULES ONLY` in grey. Reflects runtime `guard_mode`. |
+| **Kill the LLM toggle** | Switch in the top bar (admin only). Calls `POST /llm/mode` (`ok` or `down`). Dropdown exposes other modes (`says_safe_always`, `timeout`, `garbage`). Badge shows `LLM: ok` or `LLM: DOWN, rules only`. |
 | Session badge | Current session ID and taint level: `clean` (green), `untrusted_present` (amber), `flagged` (red). Click shows `taint_reasons`. |
-| Demo banner | Shown only when the server reports demo mode: "Demo mode, side effects are simulated" |
-| Navigation | Left rail in the order of the table in section 1 |
-| Errors | API errors render a toast with `message` and `code`, and keep `request_id` copyable. Network failure shows a persistent banner with Retry. 403 on a role-gated action shows what role is needed. |
-| Loading | Skeleton rows, never a blank screen |
-| Accessibility | Outcome is always text plus color (never color only). Keyboard focus visible. Tables have captions. |
+| Demo banner | Shown only when `DEMO_MODE=1`: "Demo mode: side effects are simulated". |
+| Untrusted Text Escaping | All text originating from users, tools, reviews, web pages, or action arguments is strictly escaped before rendering. No raw HTML injection. |
+| Errors & Loading | Toast notifications with error code, message, and copyable `request_id`. Skeleton rows during load. |
 
-Outcome colors: `allow` green, `sanitize` blue, `hold` and `escalate` amber, `block` red. Decision path chip: `rules` grey, `rules+llm` purple, `fallback` orange.
+Outcome colors: `allow` green, `sanitize` blue, `hold` and `escalate` amber, `block` red. Decision path chip: `rules` grey, `rules+llm` purple, `fallback` orange. Agent source chip: `live` green, `simulated` amber.
 
-## 1. Screens
+## 1. Role-Based Dashboards
 
-| # | Screen | ID | Pri |
-| --- | --- | --- | --- |
-| 1 | Agent Sandbox | UI-01 | MVP |
-| 2 | Live Decisions | UI-02 | MVP |
-| 3 | Approvals | UI-03 | MVP |
-| 4 | Attack Graph | UI-04 | MVP |
-| 5 | PromptShield Lab | UI-05 | MVP |
-| 6 | Benchmark | UI-06 | MVP |
-| 7 | Policy Editor | UI-07 | MVP |
-| 8 | Audit Ledger | UI-08 | MVP |
-| 9 | Test Report | UI-09 | MVP |
+### 1.1 User Dashboard (`/user`) — For Requesters & Approvers
 
-### UI-01 Agent Sandbox
+The User Dashboard combines agent interaction, personal request tracking, and the approvals queue:
 
-**Purpose:** Chat with SupportBot, run the scripted replay, see simulated side effects.
+| Section | Component | Description |
+| --- | --- | --- |
+| **SupportBot Chat (UI-01)** | Agent Sandbox | Chat interface with SupportBot. Each turn displays the `LIVE` or `SIMULATED` badge, inline decision chips (outcome, rule IDs, decision path), and sanitized text markers (`[removed by Sentinel: ...]`). Includes session selector, "New Session" button, "Load Poisoned Review" menu, and fake outbox tabs (Emails, DB operations). |
+| **My Requests & Status** | Requests Feed | Table of all actions submitted in the user's sessions. Displays action type, arguments excerpt, outcome (`allow`, `hold`, `block`), status (`decided`, `executed`, `execution_failed`), decision path, and link to approval if held. |
+| **Approvals Queue (UI-03)** | Approvals Panel | Visible to users with role `approver` (Bob, Admin, Dana). Lists pending action holds and ingress reviews. Detail panel shows exact arguments, advisory LLM summary, rule IDs, taint, and blast radius. Approve and Reject buttons with comments. Disabled with explanatory message if active user is the requester (self-approval prohibited). |
 
-| Region | Components |
-| --- | --- |
-| Left: chat | Message list (user, agent, system cards), input box, Send. Each agent turn shows inline decision chips (outcome, rule IDs, path). Sanitized text shows `[removed by Sentinel: ...]` markers highlighted. |
-| Center: session | "New session" button (calls `POST /sessions` for the active user), session badge, **Load poisoned review** menu (the five `rv-p*` styles), "Reset sandbox" (admin) |
-| Right: fake outbox | Two tabs: **Emails** and **DB operations**. Each item labeled "SIMULATED, nothing was sent". Empty state: "Nothing has left the sandbox." |
-| Bottom: replay bar | **Scripted replay** panel: step list S1..S8 with status (pending, running, matched, mismatch), **Next step** and **Auto-play** (3 s pacing), "Expected vs actual" drawer per step |
+### 1.2 Admin Dashboard (`/admin`) — For Admins
 
-Interactions: sending a message calls `POST /sandbox/message`. Loading a review calls `POST /sandbox/load-review`. A `hold` result shows a link to the approval. A `block` shows the rule ID and reason.
+The Admin Dashboard houses administrative control, security policy, access modeling, auditing, and LLM configuration:
 
-States: no session (prompt to create one), LLM down (amber badge, still works), 503 `ledger.unavailable` (red card "Decision could not be recorded, nothing was executed").
-
-### UI-02 Live Decisions
-
-Feed of every ingress and action decision, newest first. Columns: time, module, subject, input or action summary, **outcome**, reason, rule IDs (chips with tooltip text of the rule reason), path, session taint at decision time. Filters: module, outcome, path, subject. Row click opens a drawer with the redacted payload and the ledger entry (`GET /ledger/{seq}`). Pause/resume. Empty state "No decisions yet. Send a message in the Sandbox." Error state: banner with Retry.
-
-### UI-03 Approvals
-
-| Region | Components |
-| --- | --- |
-| Queue (left) | Tabs Pending, Decided. Items show kind (action, ingress review, policy change), requester, age, expiry countdown, summary (`email.send to attacker@evil.example`) |
-| Detail (right) | **Exact arguments** in a read-only JSON view with the target highlighted, fingerprint (first 12 chars, copy for full), rule IDs with reasons, session taint, blast radius chip, **LLM summary labeled "advisory"** (or "unavailable, decided by rules"). For policy changes: the structural diff. For ingress reviews: redacted findings and the text with spans highlighted. |
-| Actions | **Approve** and **Reject** with an optional comment. Disabled with an explanation when the active user is the requester or lacks the role. Clicking Approve as the requester still sends the request, so the refusal is real and ledgered (needed for demo step 5). |
-
-States: empty ("No held actions"), expired (greyed, "Expired, the agent must re-propose"), already decided (read-only with approver and signature digest).
-
-### UI-04 Attack Graph
-
-| Region | Components |
-| --- | --- |
-| Canvas (center) | Cytoscape graph. Node shapes by type (user person, role badge, service rounded box, agent hexagon, tool diamond, asset cylinder, external cloud). **Entry points** have a green ring. **Derived entry points** show a `derived` badge (X-03). **Sensitive assets** have a red fill scaled by sensitivity. Reverse-traversal edges render with an arrow in the traversal direction and a dashed style, with tooltip "stored as consumer to source". Selecting a route highlights its nodes and edges and dims the rest. Layout: breadth-first from entry points. Cycle edges are drawn curved. |
-| Left panel | **Routes** list: path ID, entry, asset, length, a one-line summary. Truncation warning banner when `truncated`. **Max depth** control (stepper 1..8, default 4) that recomputes on change. Graph version and a "model last changed" timestamp. |
-| Route detail | Click a route: ordered steps with edge type chips and the plain-language sentence per step |
-| Right panel | **Remediation** list: ranked suggestions (edge, routes broken, rationale). **Preview** shows removed, remaining, new inline without changing anything. **Apply** (admin only, confirmation dialog) is a ledgered change. |
-| Bottom: diff panel | After any change: three columns **Removed**, **Remaining**, **New** with path IDs and summaries. A banner when `comparison_reliable` is false. |
-| Toolbar | Upload JSON (admin), **Validate only**, Download current model, Blast radius lookup (click a node to see its card), Stretch: CSV upload, edit form |
-
-Upload errors render as a list: location, code, plain message ("`/edges/1/dst`: Edge e-bad refers to destination svc:ghost, which is not defined..."). The graph is unchanged and a banner says so.
-
-States: empty graph ("Upload a model to begin"), no routes ("No routes within depth 4. Increase depth or mark entry points"), unavailable (error with Retry, blast shows `high`).
-
-### UI-05 PromptShield Lab
-
-Left: text area, **source tier** select (`user`, `retrieved_document`, `tool_output`), presets for the five poisoned reviews, benign tricky cases, and canary variants. Right: **Outcome** card (outcome, reason, rule IDs, path), **Findings** table (type, confidence, detector, encoding, span, redacted evidence), original text with spans highlighted, **sanitized output** with markers, and a re-scan result ("clean" or residual findings). A toggle shows the effect of the LLM signal (rules only vs with LLM). Lab scans do not change session taint, and the screen says so. Empty and error states as elsewhere.
-
-### UI-06 Benchmark
-
-Run button ("Run on held-out test split"), run metadata (policy version, time, mode). Cards: confusion matrix, precision, recall, F1, **false-positive rate**, each with Wilson 95% interval. Charts: per-category recall, per-tier recall, direct vs indirect. Table **Misses** and table **False positives** (ID, category, tier, excerpt, findings, explanation). Sanitize quality card. A permanent note: "Only the held-out test split is reported. Misses are listed, not hidden." Side-by-side tabs for rules-only and rules plus LLM. Empty state: "No run yet." The page never shows test-case text from before a run is requested by an explicit click.
-
-### UI-07 Policy Editor
-
-Left: versions list (version, creator, approver, activated time). Center: structured editor for rules (table with inline editing of outcome, reason, and the condition JSON), thresholds, and the ingress outcome table (a 3 x 6 grid of dropdowns, pinned cell locked with a lock icon and tooltip). Right: **diff** against the active version, lint messages (floor violations in red). **Propose change** button calls `POST /policy/proposals` and navigates to the pending approval. The button text is explicit: "Propose, a second admin must approve". Role-gated: non-admins see read-only. States: lint failure (list), stale base (409, reload prompt).
-
-### UI-08 Audit Ledger
-
-Table with columns seq, time, module, event, subject, outcome, reason, rules, path, policy version, short hash. Filters: module, event type, subject, outcome. Row drawer: full entry, redacted payload, `prev_hash` and `hash`. **Verify chain** button shows result inline: green "Valid, N entries checked" or red "BROKEN at seq 17: hash mismatch", with that row highlighted and subsequent rows marked "after break". A clearly marked, red-bordered **Tamper with row (demo only)** button per row, visible only in demo mode and to admins, with a dialog stating that it bypasses the append API to simulate an insider. Stretch: Export checkpoint.
-
-### UI-09 Test Report
-
-Last pytest run (`GET /tests/report`): totals, run time, **Run tests** button. Grouped by requirement ID (AG, BP, PS, X, PE, LG, LA, SS, AU, FI), each group expandable to test names, status, duration. A "Requirements without a passing test" list that must be empty for MVP. Filter failed. Stretch tests shown as skipped with a tag. Empty state: "No run yet. Run tests."
+| Section | Screen | Description |
+| --- | --- | --- |
+| **LLM Settings & Controls (UI-11)** | LLM Settings | Admin-only panel to manage AI runtime: <br>• Mode switches: `AGENT_MODE` (`live` vs `simulation`) and `GUARD_MODE` (`live` vs `rules_only`). <br>• Active model display (`gpt-4o-mini`) and timeout configuration. <br>• **Test Connection** button: sends diagnostic ping to provider, displays round-trip latency and health. <br>• **Kill the LLM** mode selector (`ok`, `down`, `timeout`, `garbage`, `says_safe_always`). |
+| **Policy Editor (UI-07)** | Policy Management | Structured rule editor, threshold controls, ingress table (3x6 matrix). Invariant lint checks. Diff viewer. "Propose Change" button with explicit label: "Propose (a second admin must approve)". |
+| **Attack Graph (UI-04)** | BreachPath Canvas | Cytoscape attack graph visualization with entry points, derived badges, and sensitive asset highlights. Routes list with max-depth control (1..8). Remediation suggestions with non-mutating preview and ledgered apply. |
+| **Registries** | Agent & Action Registries | Read-only inspection of registered agents (status, allowed actions) and action types (schemas, sensitivities, record limits). |
+| **Audit Ledger (UI-08)** | Immutable Ledger | Full ledger event table with seq, timestamp, module, event type, outcome, decision path, and short hash. Row drawer with redacted payload. **Verify Chain** button. Admin-only **Tamper with row (demo only)** button behind `DEMO_MODE=1`. |
+| **Benchmark (UI-06)** | PromptShield Benchmark | Benchmark suite execution on held-out test split. Confusion matrix, precision, recall, F1, false-positive rate with Wilson intervals. Side-by-side comparison tabs for rules-only vs rules+llm. Full list of misses and false positives. |
+| **Test Report (UI-09)** | Automated Test Suite | Live test runner (`make test`) and report view grouped by requirement IDs. Untested requirements list (must be empty). |
+| **PromptShield Lab (UI-05)** | Security Lab | Interactive ingress testing tool with presets, detector finding breakdowns, and sanitization re-scan verification. |
 
 ## 2. Shared components
 
-`OutcomeChip`, `PathChip`, `RuleChip` (tooltip with rule reason from the policy), `TaintBadge`, `JsonView` (read-only, copy, highlights), `HashText` (truncate, copy), `Toast`, `ConfirmDialog`, `RoleGate` (renders the explanation when disabled), `EmptyState`, `ErrorBanner`.
+`OutcomeChip`, `PathChip`, `AgentSourceBadge`, `RuleChip`, `TaintBadge`, `JsonView` (read-only, copy, highlights), `HashText` (truncate, copy), `Toast`, `ConfirmDialog`, `RoleGate` (renders explanation when user lacks role), `EmptyState`, `ErrorBanner`.
 
 ## 3. Data fetching rules
 
-* Poll `/decisions?since_seq=` and `/approvals?status=pending` every 2 s while the screen is visible.
-* Never cache `/ledger/verify`. Recompute on click.
-* Mutations disable their button until the response returns and show the server `message` on error.
-* The UI never constructs agent-plane requests. All agent actions in the Sandbox go through `/api/v1/sandbox/*` (D-03).
+* Poll `/decisions?since_seq=` and `/approvals?status=pending` every 2 s while visible.
+* Poll `/api/v1/system/status` periodically to update mode badges and health.
+* Never cache `/ledger/verify`. Recompute on explicit click.
+* Mutations disable their button until the response returns and show server error message on failure.
+* The UI never constructs agent-plane requests directly. All sandbox chat actions route through `/api/v1/sandbox/*`.
 
 ## 4. Acceptance checklist (T-UI-01 and manual)
 
-1. Each screen renders on a fresh seed with a meaningful empty state.
-2. Approvals shows the exact arguments equal to those stored, and the advisory label.
-3. Self-approval attempt shows the server's refusal text and the ledger gains `approval.refused.self`.
-4. Attack Graph shows 7 routes at depth 4, 2 at depth 2, 8 at depth 5, derived badges on two tools, and an error list for `bad_graph.json`.
-5. Remediation preview then apply shows the three-column diff with the expected path IDs.
-6. LLM toggle flips the badge, and the next decision shows the `fallback` chip.
-7. Verify is green on a clean ledger and red naming the tampered seq after the tamper action.
-8. Tamper button is absent when demo mode is off.
+1. Seeded login routes `alice` and `bob` to `/user`, and `admin` and `dana` to `/admin`.
+2. Quick-switch is visible only when `DEMO_MODE=1`.
+3. Agent Sandbox renders `AGENT: LIVE` or `AGENT: SIMULATED` badge matching runtime state.
+4. If live agent provider fails, UI automatically displays `AGENT: SIMULATED` badge.
+5. Approvals queue displays exact arguments and marks LLM summary as "advisory".
+6. Self-approval shows server-side refusal with explanation.
+7. Admin LLM Settings allows toggling `agent_mode` and `guard_mode`, and "Test Connection" displays latency.
+8. Non-admins navigating to `/admin` receive access denied / 403 error.
+9. Attack Graph renders routes, derived badges, and remediation diffs.
+10. Audit Ledger verify button turns green on valid chain and red on tampered row.
+11. Untrusted input and tool outputs are strictly HTML-escaped.

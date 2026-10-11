@@ -16,9 +16,10 @@ Sentinel is a security control plane around one simulated agent (`SupportBot` of
 | --- | --- | --- | --- |
 | Policy engine | `core/policy.py` | Deterministic evaluation, deny-overrides, versioning | PE-01..07 |
 | Audit ledger | `core/ledger.py` | Hash-chained append-only log, verify | LG-01..07 |
-| LLM adapter | `core/llm.py` | Timeout, schema validation, breaker, mock modes | LA-01..05 |
+| LLM provider & adapter | `core/llm.py`, `core/providers/` | Provider interface, OpenAIProvider, MockProvider, ScriptedAgent, circuit breaker, runtime modes | LA-01..10 |
+| Agent runtime | `actiongate/runtime.py` | SupportBot function definitions, autonomous loop, tool interception, PromptShield pre-screening | AG-17..20 |
 | Session store | `core/session.py` | Taint levels, monotonic taint | SS-01..04 |
-| Auth | `api/auth.py` | Two planes, roles, execution tokens | AU-01..04 |
+| Auth & RBAC | `api/auth.py` | Two planes, role enforcement (requester, approver, admin), execution tokens | AU-01..07 |
 
 ```mermaid
 flowchart LR
@@ -76,11 +77,12 @@ flowchart LR
 | --- | --- | --- | --- |
 | TB1 | Content authors to agent | Review text, web pages, tool output | PromptShield screens by tier. Tier is set by the platform from the tool registry, never by content (PS-01). |
 | TB2 | Agent to gateway | Ingress submissions, proposed actions | Agent-plane credential only. Agent identity comes from the credential, never the body (AU-01). Agent cannot create sessions (SS-04). |
-| TB3 | Browser to human plane | Approvals, policy proposals, graph edits | Human token with roles. Agent credentials are rejected on every `/api/v1` route (AU-02). |
+| TB3 | Browser to human plane | Approvals, policy proposals, graph edits, LLM settings | Human token with roles. Agent credentials are rejected on every `/api/v1` route (AU-02). Server enforces role permissions on every route (AU-05). |
 | TB4 | Gateway to executors | Execution token | Executors verify an HMAC token bound to action id and fingerprint. No token, no side effect (AU-04, AG-11). |
 | TB5 | App to SQLite file | Ledger rows, policy versions | Triggers block UPDATE/DELETE as defense in depth. Tamper evidence relies on the hash chain, not on the triggers. An insider with file access is a stated adversary. |
-| TB6 | App to LLM provider (optional) | Text to classify, action summaries | Output is untrusted: schema validated, timeout, circuit breaker, can only tighten (LA-01..04). |
+| TB6 | App to Guard LLM (advisory) | Text to classify, action summaries | Output is untrusted: schema validated, timeout, circuit breaker, can only tighten (LA-01..04, LA-08). |
 | TB7 | Sandbox runner inside the server process | Runner calls the agent plane over its own HTTP client | The runner holds only the agent key. It is code in the agent trust domain even though it shares a process. |
+| TB8 | App to External LLM Provider (OpenAI) | Prompt messages, tool definitions, tool responses | API key held only in server env; model output treated as untrusted proposals; tool calls intercepted and gated; ingesting tool output screened by PromptShield before return to model (AG-18, AG-19). |
 
 ## 3. Two auth planes
 
@@ -89,10 +91,11 @@ flowchart LR
 | URL prefix | `/agent/v1` | `/api/v1` |
 | Credential | `Authorization: Bearer agk_<agent_id>_<secret>`. Stored as SHA-256(pepper + secret). | `Authorization: Bearer hum.<payload>.<sig>`. HMAC-SHA256 signed token holding `user_id`, `roles`, `exp`. |
 | Signing key | `SENTINEL_AGENT_PEPPER` | `SENTINEL_HUMAN_KEY` |
-| Can | Read own session taint, submit ingress, propose actions, execute approved actions, poll action status | Everything else: login, sessions, approvals, policy, graph, ledger, benchmark, tests, LLM mode, taint reset |
+| Can | Read own session taint, submit ingress, propose actions, execute approved actions, poll action status | Everything else: login, sessions, approvals, policy, graph, ledger, benchmark, tests, LLM mode/settings, taint reset |
 | Cannot | Call any human route. Create or reset sessions. Approve. Edit policy or graph. | Call `/agent/v1`. Tokens fail there with `auth.wrong_plane`. |
+| Human Roles | N/A | `requester` (Alice): chat, view own session requests. `approver` (Bob, Admin, Dana): decide actions & reviews. `admin` (Admin, Dana): manage policy, graph, LLM settings, test connection, benchmark, tests, tamper. |
 
-A single FastAPI dependency per router (`require_agent`, `require_human(roles=...)`) is the only way to obtain a principal. Routers are mounted separately so a missing decorator on a human route fails closed: the default dependency on the `/api/v1` router is `require_human()`. Test T-AU-01 enumerates the OpenAPI route table and calls every human route with an agent key.
+A single FastAPI dependency per router (`require_agent`, `require_human(roles=...)`) is the only way to obtain a principal. Routers are mounted separately so a missing decorator on a human route fails closed: the default dependency on the `/api/v1` router is `require_human()`. Server-side role checks reject unauthorized callers with 403 `auth.forbidden_role`. Test T-AU-01 enumerates the OpenAPI route table and calls every human route with an agent key.
 
 Other keys: `SENTINEL_APPROVAL_KEY` (approval signatures), `SENTINEL_EXEC_KEY` (execution tokens). Four distinct keys so one leak does not cross planes.
 
@@ -258,15 +261,15 @@ sequenceDiagram
   end
 ```
 
-### 4.5b Policy change gating (PE-06, X-07)
+### 4.5b Policy change gating (PE-06, X-07, AU-07)
 
 ```mermaid
 sequenceDiagram
   autonumber
-  participant A1 as Admin proposer
+  participant A1 as Admin proposer (admin)
   participant H as Human plane
   participant PE as Policy engine
-  participant A2 as Dana second admin
+  participant A2 as Dana second admin (dana)
   participant L as Ledger
   A1->>H: POST /policy/proposals base_version, policy
   H->>PE: lint, floor invariants, compute diff and fingerprint
@@ -285,6 +288,67 @@ sequenceDiagram
   end
 ```
 
+### 4.6 Agent runtime autonomous loop with function calling (AG-17..20)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as User (chat)
+  participant RT as Agent Runtime
+  participant PS as PromptShield
+  participant LLM as OpenAIProvider / Model
+  participant GW as ActionGate
+  participant EX as Mock Executor
+  participant L as Ledger
+
+  U->>RT: POST /api/v1/sandbox/message (user prompt)
+  RT->>PS: screen(tier=user, text)
+  PS-->>RT: outcome (allow / block / escalate)
+  alt outcome is block or escalate
+    RT-->>U: refusal / escalated response
+  else outcome is allow or sanitize
+    loop up to max iterations (5)
+      RT->>LLM: generate_turn(messages, tools)
+      LLM-->>RT: tool_call (e.g. read_reviews OR email.send)
+      alt ingesting tool (browse_page, read_reviews)
+        RT->>EX: fetch content
+        EX-->>RT: raw content
+        RT->>PS: screen(tier, raw_content) [BEFORE returning to model]
+        PS-->>RT: screened text (or sanitized)
+        RT->>RT: append tool result to messages
+      else action tool (email.send, delete_records, etc.)
+        RT->>GW: propose(agent_id, session_id, action)
+        GW->>L: record decision
+        GW-->>RT: decision (allow / hold / block)
+        RT->>RT: append {status, outcome, reason, approval_id} to messages
+      end
+      opt model returns final message
+        RT-->>U: final answer (with decision chips and status)
+      end
+    end
+  end
+```
+
+### 4.7 Auto-fallback to simulation on provider failure (LA-09)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant RT as Agent Runtime
+  participant OAI as OpenAIProvider
+  participant SIM as ScriptedAgent
+  participant L as Ledger
+
+  U->>RT: Message in session
+  RT->>OAI: generate_turn(...)
+  OAI-->>RT: Error (timeout / 5xx / rate limit / invalid JSON)
+  RT->>L: append agent.fallback_to_simulation
+  RT->>SIM: execute_scenario_turn(message)
+  SIM-->>RT: simulated response + proposed actions
+  RT-->>U: response with agent_source="simulated" & SIMULATED badge
+```
+
 ## 5. Technology choices
 
 | Area | Choice | Rationale |
@@ -296,7 +360,7 @@ sequenceDiagram
 | Tests | pytest with a `req` marker and a JSON reporter plugin | Feeds the Test Report screen (UI-09) |
 | Live updates | Polling every 2 s (MVP). SSE at `/api/v1/stream` (Stretch). | Cut list item |
 | Packaging | Docker Compose, one service, FastAPI serves the built SPA | One command start |
-| LLM | Mock adapter in MVP (fixtures + heuristics). Real provider behind the same interface (Stretch). | Scripted replay must be deterministic |
+| LLM Provider Layer | OpenAI Python SDK (`openai>=1.0.0`), MockProvider for tests, ScriptedAgent for simulation | Supports structured outputs and function calling. Network-isolated tests using MockProvider. Replay determinism via ScriptedAgent. |
 
 ## 6. Concurrency, transactions, and fail-closed behavior
 
@@ -321,8 +385,13 @@ services:
     environment:
       SENTINEL_DB: /app/data/sentinel.db
       SENTINEL_SEED: "1337"
-      SENTINEL_DEMO_MODE: "1"          # enables /demo/* routes and the tamper button
+      SENTINEL_DEMO_MODE: "1"          # enables /demo/* routes and quick switch
       SENTINEL_LLM_MODE: ok            # ok | says_safe_always | timeout | garbage | down
+      OPENAI_API_KEY: ""               # optional: provider key for live LLM mode
+      OPENAI_MODEL: gpt-4o-mini        # default model for agent & guard
+      LLM_TIMEOUT_SECONDS: "3.0"       # timeout ceiling for provider calls
+      SENTINEL_AGENT_MODE: simulation  # live | simulation
+      SENTINEL_GUARD_MODE: live        # live | rules_only
       SENTINEL_HUMAN_KEY: demo-human-key-change-me
       SENTINEL_APPROVAL_KEY: demo-approval-key-change-me
       SENTINEL_EXEC_KEY: demo-exec-key-change-me
