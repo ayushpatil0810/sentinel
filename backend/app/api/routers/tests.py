@@ -127,17 +127,26 @@ def _execute_pytest_worker(run_id: str) -> None:
             if not any(t["status"] == "passed" for t in tests)
         ]
 
-        _latest_report = {
-            "run_id": run_id,
-            "ts": start_ts,
-            "totals": {
-                "passed": passed_count,
-                "failed": failed_count,
-                "skipped": skipped_count,
-            },
-            "by_requirement": {k: v for k, v in by_req.items() if v},
-            "untested_requirements": untested,
-        }
+        report_file = REPO_ROOT / "reports" / "last_run.json"
+        if report_file.exists():
+            try:
+                import json
+                _latest_report = json.loads(report_file.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+        if _latest_report is None:
+            _latest_report = {
+                "run_id": run_id,
+                "ts": start_ts,
+                "totals": {
+                    "passed": passed_count,
+                    "failed": failed_count,
+                    "skipped": skipped_count,
+                },
+                "by_requirement": {k: v for k, v in by_req.items() if v},
+                "untested_requirements": untested,
+            }
     finally:
         with _test_lock:
             _is_running = False
@@ -175,6 +184,16 @@ def get_tests_report(
 ) -> dict[str, Any]:
     """Retrieve the latest test report grouped by requirement ID."""
     authenticate_human(authorization)
+    global _latest_report
+
+    if _latest_report is None:
+        report_file = REPO_ROOT / "reports" / "last_run.json"
+        if report_file.exists():
+            try:
+                import json
+                _latest_report = json.loads(report_file.read_text(encoding="utf-8"))
+            except Exception:
+                pass
 
     if _latest_report is None:
         raise errors.SentinelError(
@@ -184,3 +203,4 @@ def get_tests_report(
         )
 
     return _latest_report
+

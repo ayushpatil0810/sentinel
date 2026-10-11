@@ -1,3607 +1,3540 @@
 {
-"openapi": "3.1.0",
-"info": {
-"title": "Sentinel",
-"description": "Security control plane for AI agents (PromptShield + ActionGate + BreachPath).",
-"version": "0.1.0"
-},
-"paths": {
-"/health": {
-"get": {
-"summary": "Health",
-"description": "Health check — no auth required (api.md §2.10).",
-"operationId": "health_health_get",
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {}
-}
-}
-}
-}
-}
-},
-"/ledger/verify": {
-"get": {
-"summary": "Get Ledger Verify Root",
-"operationId": "get_ledger_verify_root_ledger_verify_get",
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"additionalProperties": true,
-"type": "object",
-"title": "Response Get Ledger Verify Root Ledger Verify Get"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/auth/login": {
-"post": {
-"tags": [
-"auth"
-],
-"summary": "Login",
-"description": "Authenticate a human user and return a signed bearer token.",
-"operationId": "login_api_v1_auth_login_post",
-"requestBody": {
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/LoginRequest"
-}
-}
-},
-"required": true
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"additionalProperties": true,
-"type": "object",
-"title": "Response Login Api V1 Auth Login Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/auth/me": {
-"get": {
-"tags": [
-"auth"
-],
-"summary": "Get Me",
-"description": "Return the profile and roles of the currently authenticated human.",
-"operationId": "get_me_api_v1_auth_me_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Me Api V1 Auth Me Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/users": {
-"get": {
-"tags": [
-"users"
-],
-"summary": "List Users",
-"description": "Return all users for the user switcher.",
-"operationId": "list_users_api_v1_users_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "array",
-"items": {
-"type": "object",
-"additionalProperties": true
-},
-"title": "Response List Users Api V1 Users Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/sessions": {
-"post": {
-"tags": [
-"sessions"
-],
-"summary": "Create Session",
-"description": "Create a new session for an agent, owned by the authenticated human.",
-"operationId": "create_session_api_v1_sessions_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/CreateSessionRequest"
-}
-}
-}
-},
-"responses": {
-"201": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Create Session Api V1 Sessions Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/sessions/{session_id}": {
-"get": {
-"tags": [
-"sessions"
-],
-"summary": "Get Session",
-"description": "Get session details including taint history.",
-"operationId": "get_session_api_v1_sessions__session_id__get",
-"parameters": [
-{
-"name": "session_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Session Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Session Api V1 Sessions  Session Id  Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/sessions/{session_id}/taint/reset": {
-"post": {
-"tags": [
-"sessions"
-],
-"summary": "Reset Taint",
-"description": "Reset session taint level to 0 (clean). Approver or admin role required.",
-"operationId": "reset_taint_api_v1_sessions__session_id__taint_reset_post",
-"parameters": [
-{
-"name": "session_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Session Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/ResetTaintRequest"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Reset Taint Api V1 Sessions  Session Id  Taint Reset Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/ledger": {
-"get": {
-"tags": [
-"ledger"
-],
-"summary": "List Ledger Entries",
-"description": "List ledger entries with optional filters.",
-"operationId": "list_ledger_entries_api_v1_ledger_get",
-"parameters": [
-{
-"name": "module",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"description": "Filter by module",
-"default": "",
-"title": "Module"
-},
-"description": "Filter by module"
-},
-{
-"name": "event_type",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"description": "Filter by event_type",
-"default": "",
-"title": "Event Type"
-},
-"description": "Filter by event_type"
-},
-{
-"name": "subject",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"description": "Filter by subject",
-"default": "",
-"title": "Subject"
-},
-"description": "Filter by subject"
-},
-{
-"name": "outcome",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"description": "Filter by outcome",
-"default": "",
-"title": "Outcome"
-},
-"description": "Filter by outcome"
-},
-{
-"name": "from_seq",
-"in": "query",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "integer"
-},
-{
-"type": "null"
-}
-],
-"description": "Starting seq number",
-"title": "From Seq"
-},
-"description": "Starting seq number"
-},
-{
-"name": "limit",
-"in": "query",
-"required": false,
-"schema": {
-"type": "integer",
-"description": "Max entries to return",
-"default": 100,
-"title": "Limit"
-},
-"description": "Max entries to return"
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "array",
-"items": {
-"type": "object",
-"additionalProperties": true
-},
-"title": "Response List Ledger Entries Api V1 Ledger Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/ledger/verify": {
-"get": {
-"tags": [
-"ledger"
-],
-"summary": "Verify Ledger",
-"description": "Walk and verify the hash chain integrity.",
-"operationId": "verify_ledger_api_v1_ledger_verify_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Verify Ledger Api V1 Ledger Verify Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/ledger/{seq}": {
-"get": {
-"tags": [
-"ledger"
-],
-"summary": "Get Ledger Entry",
-"description": "Get a single ledger entry with its payload.",
-"operationId": "get_ledger_entry_api_v1_ledger__seq__get",
-"parameters": [
-{
-"name": "seq",
-"in": "path",
-"required": true,
-"schema": {
-"type": "integer",
-"title": "Seq"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Ledger Entry Api V1 Ledger  Seq  Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/llm/mode": {
-"get": {
-"tags": [
-"llm"
-],
-"summary": "Get Llm Mode",
-"description": "Get current LLM adapter mode and circuit breaker state.",
-"operationId": "get_llm_mode_api_v1_llm_mode_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Llm Mode Api V1 Llm Mode Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-},
-"post": {
-"tags": [
-"llm"
-],
-"summary": "Set Llm Mode",
-"description": "Switch LLM adapter mock mode (the 'kill the LLM' toggle).",
-"operationId": "set_llm_mode_api_v1_llm_mode_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/SetModeRequest"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Set Llm Mode Api V1 Llm Mode Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/agent/v1/actions": {
-"post": {
-"tags": [
-"agent-actions"
-],
-"summary": "Propose Agent Action",
-"description": "Propose an action through ActionGate.\nRejects any request body containing 'agent_id' (AU-01).",
-"operationId": "propose_agent_action_agent_v1_actions_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Propose Agent Action Agent V1 Actions Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/agent/v1/actions/{action_id}": {
-"get": {
-"tags": [
-"agent-actions"
-],
-"summary": "Get Agent Action",
-"description": "Get status and details of an action owned by the authenticated agent.",
-"operationId": "get_agent_action_agent_v1_actions__action_id__get",
-"parameters": [
-{
-"name": "action_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Action Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Agent Action Agent V1 Actions  Action Id  Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/agent/v1/actions/{action_id}/execute": {
-"post": {
-"tags": [
-"agent-actions"
-],
-"summary": "Execute Agent Action",
-"description": "Execute an approved action.",
-"operationId": "execute_agent_action_agent_v1_actions__action_id__execute_post",
-"parameters": [
-{
-"name": "action_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Action Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/ExecuteActionRequest"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Execute Agent Action Agent V1 Actions  Action Id  Execute Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/agent/v1/ingress": {
-"post": {
-"tags": [
-"ingress"
-],
-"summary": "Agent Ingress",
-"description": "Agent plane input screening (api.md §1.2, PS-01..PS-16).",
-"operationId": "agent_ingress_agent_v1_ingress_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Payload"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Agent Ingress Agent V1 Ingress Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/agent/v1/sessions/{session_id}": {
-"get": {
-"tags": [
-"agent-sessions"
-],
-"summary": "Get Agent Session",
-"description": "Get session info for the authenticated agent.\nIf session belongs to another agent, returns 404 session.not_found (SS-04).",
-"operationId": "get_agent_session_agent_v1_sessions__session_id__get",
-"parameters": [
-{
-"name": "session_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Session Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Agent Session Agent V1 Sessions  Session Id  Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/approvals": {
-"get": {
-"tags": [
-"approvals"
-],
-"summary": "List Approvals",
-"description": "List approvals with optional filters.",
-"operationId": "list_approvals_api_v1_approvals_get",
-"parameters": [
-{
-"name": "status",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"description": "Filter by status (pending, approved, rejected, expired, consumed)",
-"default": "",
-"title": "Status"
-},
-"description": "Filter by status (pending, approved, rejected, expired, consumed)"
-},
-{
-"name": "kind",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"description": "Filter by kind (action, ingress_review, policy.update)",
-"default": "",
-"title": "Kind"
-},
-"description": "Filter by kind (action, ingress_review, policy.update)"
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response List Approvals Api V1 Approvals Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/approvals/{approval_id}": {
-"get": {
-"tags": [
-"approvals"
-],
-"summary": "Get Approval Details",
-"description": "Get full approval record with reviewer view (AG-15).",
-"operationId": "get_approval_details_api_v1_approvals__approval_id__get",
-"parameters": [
-{
-"name": "approval_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Approval Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Approval Details Api V1 Approvals  Approval Id  Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/approvals/{approval_id}/decision": {
-"post": {
-"tags": [
-"approvals"
-],
-"summary": "Submit Approval Decision",
-"description": "Submit approval decision (approve or reject). Checks self-approval and roles.",
-"operationId": "submit_approval_decision_api_v1_approvals__approval_id__decision_post",
-"parameters": [
-{
-"name": "approval_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Approval Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/DecisionRequest"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Submit Approval Decision Api V1 Approvals  Approval Id  Decision Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/registries/agents": {
-"get": {
-"tags": [
-"registries"
-],
-"summary": "Get Agents",
-"description": "Return registered agents.",
-"operationId": "get_agents_api_v1_registries_agents_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "array",
-"items": {
-"type": "object",
-"additionalProperties": true
-},
-"title": "Response Get Agents Api V1 Registries Agents Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/registries/action-types": {
-"get": {
-"tags": [
-"registries"
-],
-"summary": "Get Action Types",
-"description": "Return registered action types.",
-"operationId": "get_action_types_api_v1_registries_action_types_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "array",
-"items": {
-"type": "object",
-"additionalProperties": true
-},
-"title": "Response Get Action Types Api V1 Registries Action Types Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/policy": {
-"get": {
-"tags": [
-"policy"
-],
-"summary": "Get Active Policy",
-"description": "Retrieve currently active policy document and version (api.md §2.5).",
-"operationId": "get_active_policy_api_v1_policy_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Active Policy Api V1 Policy Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/policy/versions": {
-"get": {
-"tags": [
-"policy"
-],
-"summary": "List Policy Versions",
-"description": "List all policy versions in chronological order.",
-"operationId": "list_policy_versions_api_v1_policy_versions_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "array",
-"items": {
-"type": "object",
-"additionalProperties": true
-},
-"title": "Response List Policy Versions Api V1 Policy Versions Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/policy/versions/{v}": {
-"get": {
-"tags": [
-"policy"
-],
-"summary": "Get Policy Version",
-"description": "Retrieve a specific policy version document.",
-"operationId": "get_policy_version_api_v1_policy_versions__v__get",
-"parameters": [
-{
-"name": "v",
-"in": "path",
-"required": true,
-"schema": {
-"type": "integer",
-"title": "V"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Policy Version Api V1 Policy Versions  V  Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/policy/diff": {
-"get": {
-"tags": [
-"policy"
-],
-"summary": "Diff Policy Versions",
-"description": "Compute RFC 6902-style diff between two policy versions.",
-"operationId": "diff_policy_versions_api_v1_policy_diff_get",
-"parameters": [
-{
-"name": "from",
-"in": "query",
-"required": true,
-"schema": {
-"type": "integer",
-"title": "From"
-}
-},
-{
-"name": "to",
-"in": "query",
-"required": true,
-"schema": {
-"type": "integer",
-"title": "To"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "array",
-"items": {
-"type": "object",
-"additionalProperties": true
-},
-"title": "Response Diff Policy Versions Api V1 Policy Diff Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/policy/proposals": {
-"post": {
-"tags": [
-"policy"
-],
-"summary": "Propose Policy Change",
-"description": "Propose a policy modification requiring second-admin approval (PE-06, X-07).",
-"operationId": "propose_policy_change_api_v1_policy_proposals_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/PolicyProposalRequest"
-}
-}
-}
-},
-"responses": {
-"202": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Propose Policy Change Api V1 Policy Proposals Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph": {
-"get": {
-"tags": [
-"breachpath"
-],
-"summary": "Get Graph",
-"description": "Get active access graph model with version and warnings (api.md §2.6).",
-"operationId": "get_graph_api_v1_graph_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Graph Api V1 Graph Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-},
-"put": {
-"tags": [
-"breachpath"
-],
-"summary": "Upload Graph",
-"description": "Upload new graph model (admin only, api.md §2.6).",
-"operationId": "upload_graph_api_v1_graph_put",
-"parameters": [
-{
-"name": "format",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"default": "json",
-"title": "Format"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Upload Graph Api V1 Graph Put"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/versions": {
-"get": {
-"tags": [
-"breachpath"
-],
-"summary": "Get Versions",
-"description": "List historical graph versions (api.md §2.6).",
-"operationId": "get_versions_api_v1_graph_versions_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "array",
-"items": {
-"type": "object",
-"additionalProperties": true
-},
-"title": "Response Get Versions Api V1 Graph Versions Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/validate": {
-"post": {
-"tags": [
-"breachpath"
-],
-"summary": "Validate Graph Upload",
-"description": "Dry run validation of uploaded graph model without state change (api.md §2.6).",
-"operationId": "validate_graph_upload_api_v1_graph_validate_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Validate Graph Upload Api V1 Graph Validate Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/changes": {
-"post": {
-"tags": [
-"breachpath"
-],
-"summary": "Post Changes",
-"description": "Apply atomic list of graph changes (admin only, api.md §2.6, BP-17).",
-"operationId": "post_changes_api_v1_graph_changes_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Payload"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Post Changes Api V1 Graph Changes Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/routes": {
-"get": {
-"tags": [
-"breachpath"
-],
-"summary": "Get Routes",
-"description": "Find all simple attack routes within max_depth (api.md §2.6, BP-03..BP-05).",
-"operationId": "get_routes_api_v1_graph_routes_get",
-"parameters": [
-{
-"name": "max_depth",
-"in": "query",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "integer"
-},
-{
-"type": "null"
-}
-],
-"title": "Max Depth"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Routes Api V1 Graph Routes Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/routes/{path_id}": {
-"get": {
-"tags": [
-"breachpath"
-],
-"summary": "Get Route By Id",
-"description": "Get single attack route with full plain-language explanation (api.md §2.6).",
-"operationId": "get_route_by_id_api_v1_graph_routes__path_id__get",
-"parameters": [
-{
-"name": "path_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Path Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Route By Id Api V1 Graph Routes  Path Id  Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/remediations": {
-"get": {
-"tags": [
-"breachpath"
-],
-"summary": "Get Remediations",
-"description": "Get remediation candidates ranked by broken routes and greedy set cover plan (api.md §2.6, BP-07).",
-"operationId": "get_remediations_api_v1_graph_remediations_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Remediations Api V1 Graph Remediations Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/remediations/{edge_id}/preview": {
-"post": {
-"tags": [
-"breachpath"
-],
-"summary": "Preview Edge Remediation",
-"description": "Dry run preview of removing an edge (any human, api.md §2.6, BP-08).",
-"operationId": "preview_edge_remediation_api_v1_graph_remediations__edge_id__preview_post",
-"parameters": [
-{
-"name": "edge_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Edge Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Preview Edge Remediation Api V1 Graph Remediations  Edge Id  Preview Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/remediations/{edge_id}/apply": {
-"post": {
-"tags": [
-"breachpath"
-],
-"summary": "Apply Edge Remediation",
-"description": "Apply edge removal remediation (admin only, api.md §2.6, BP-08).",
-"operationId": "apply_edge_remediation_api_v1_graph_remediations__edge_id__apply_post",
-"parameters": [
-{
-"name": "edge_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Edge Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Payload"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Apply Edge Remediation Api V1 Graph Remediations  Edge Id  Apply Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/blast/{node_id}": {
-"get": {
-"tags": [
-"breachpath"
-],
-"summary": "Get Node Blast",
-"description": "Get blast radius metrics for a node (api.md §2.6, BP-12).",
-"operationId": "get_node_blast_api_v1_graph_blast__node_id__get",
-"parameters": [
-{
-"name": "node_id",
-"in": "path",
-"required": true,
-"schema": {
-"type": "string",
-"title": "Node Id"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Node Blast Api V1 Graph Blast  Node Id  Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/graph/derive-entry-points": {
-"post": {
-"tags": [
-"breachpath"
-],
-"summary": "Post Derive Entry Points",
-"description": "Derive entry points from action type registry (admin only, api.md §2.6, BP-11, X-03).",
-"operationId": "post_derive_entry_points_api_v1_graph_derive_entry_points_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Post Derive Entry Points Api V1 Graph Derive Entry Points Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/sandbox/message": {
-"post": {
-"tags": [
-"sandbox"
-],
-"summary": "Post Sandbox Message",
-"description": "Run an agent interaction turn through PromptShield and ActionGate.",
-"operationId": "post_sandbox_message_api_v1_sandbox_message_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/MessageRequest"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Post Sandbox Message Api V1 Sandbox Message Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/sandbox/load-review": {
-"post": {
-"tags": [
-"sandbox"
-],
-"summary": "Post Sandbox Load Review",
-"description": "Execute tool:read_reviews with a specific review ID and return screened result.",
-"operationId": "post_sandbox_load_review_api_v1_sandbox_load_review_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/LoadReviewRequest"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Post Sandbox Load Review Api V1 Sandbox Load Review Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/sandbox/replay": {
-"post": {
-"tags": [
-"sandbox"
-],
-"summary": "Post Sandbox Replay",
-"description": "Start scripted replay (DEMO-01, demo-script.md §3).",
-"operationId": "post_sandbox_replay_api_v1_sandbox_replay_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/ReplayInitRequest"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Post Sandbox Replay Api V1 Sandbox Replay Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/sandbox/replay/step": {
-"post": {
-"tags": [
-"sandbox"
-],
-"summary": "Post Sandbox Replay Step",
-"description": "Execute a single scripted replay step and verify expected matches.",
-"operationId": "post_sandbox_replay_step_api_v1_sandbox_replay_step_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/ReplayStepRequest"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Post Sandbox Replay Step Api V1 Sandbox Replay Step Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/sandbox/outbox": {
-"get": {
-"tags": [
-"sandbox"
-],
-"summary": "Get Sandbox Outbox",
-"description": "Retrieve simulated outbox emails and fake DB operations.",
-"operationId": "get_sandbox_outbox_api_v1_sandbox_outbox_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Sandbox Outbox Api V1 Sandbox Outbox Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/sandbox/reset": {
-"post": {
-"tags": [
-"sandbox"
-],
-"summary": "Post Sandbox Reset",
-"description": "Reset sandbox environment (admin only, demo mode only).",
-"operationId": "post_sandbox_reset_api_v1_sandbox_reset_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Post Sandbox Reset Api V1 Sandbox Reset Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/decisions": {
-"get": {
-"tags": [
-"decisions"
-],
-"summary": "Get Decisions",
-"description": "Poll feed of ingress and action decisions.",
-"operationId": "get_decisions_api_v1_decisions_get",
-"parameters": [
-{
-"name": "since_seq",
-"in": "query",
-"required": false,
-"schema": {
-"type": "integer",
-"minimum": 0,
-"default": 0,
-"title": "Since Seq"
-}
-},
-{
-"name": "module",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"default": "",
-"title": "Module"
-}
-},
-{
-"name": "outcome",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"default": "",
-"title": "Outcome"
-}
-},
-{
-"name": "limit",
-"in": "query",
-"required": false,
-"schema": {
-"type": "integer",
-"default": 100,
-"title": "Limit"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Decisions Api V1 Decisions Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/stream": {
-"get": {
-"tags": [
-"decisions"
-],
-"summary": "Stream Decisions",
-"description": "SSE live decisions stream (UI-02, architecture.md §3).",
-"operationId": "stream_decisions_api_v1_stream_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/promptshield/scan": {
-"post": {
-"tags": [
-"promptshield"
-],
-"summary": "Promptshield Lab Scan",
-"description": "Human plane test scan (api.md §2.7, PS-06).",
-"operationId": "promptshield_lab_scan_api_v1_promptshield_scan_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Payload"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Promptshield Lab Scan Api V1 Promptshield Scan Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/promptshield/policy": {
-"get": {
-"tags": [
-"promptshield"
-],
-"summary": "Get Promptshield Policy",
-"description": "Get active ingress table and thresholds (api.md §2.7).",
-"operationId": "get_promptshield_policy_api_v1_promptshield_policy_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Promptshield Policy Api V1 Promptshield Policy Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/benchmark/run": {
-"post": {
-"tags": [
-"benchmark"
-],
-"summary": "Run Benchmark Endpoint",
-"description": "Run benchmark evaluation on held-out test split (PS-08).",
-"operationId": "run_benchmark_endpoint_api_v1_benchmark_run_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Run Benchmark Endpoint Api V1 Benchmark Run Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/benchmark/latest": {
-"get": {
-"tags": [
-"benchmark"
-],
-"summary": "Get Latest Benchmark",
-"description": "Retrieve the most recent benchmark run metrics (PS-08).",
-"operationId": "get_latest_benchmark_api_v1_benchmark_latest_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Latest Benchmark Api V1 Benchmark Latest Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/benchmark/cases": {
-"get": {
-"tags": [
-"benchmark"
-],
-"summary": "Get Benchmark Cases",
-"description": "Retrieve benchmark cases for tuning.\nTest split is strictly hidden (403 benchmark.test_split_hidden).",
-"operationId": "get_benchmark_cases_api_v1_benchmark_cases_get",
-"parameters": [
-{
-"name": "split",
-"in": "query",
-"required": false,
-"schema": {
-"type": "string",
-"default": "dev",
-"title": "Split"
-}
-},
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Benchmark Cases Api V1 Benchmark Cases Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/demo/tamper": {
-"post": {
-"tags": [
-"demo"
-],
-"summary": "Post Demo Tamper",
-"description": "Tamper directly with a ledger row in SQL to simulate an insider attack.",
-"operationId": "post_demo_tamper_api_v1_demo_tamper_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"requestBody": {
-"required": true,
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/TamperRequest"
-}
-}
-}
-},
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Post Demo Tamper Api V1 Demo Tamper Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/tests/run": {
-"post": {
-"tags": [
-"tests"
-],
-"summary": "Post Tests Run",
-"description": "Trigger background test suite execution.",
-"operationId": "post_tests_run_api_v1_tests_run_post",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"202": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Post Tests Run Api V1 Tests Run Post"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-},
-"/api/v1/tests/report": {
-"get": {
-"tags": [
-"tests"
-],
-"summary": "Get Tests Report",
-"description": "Retrieve the latest test report grouped by requirement ID.",
-"operationId": "get_tests_report_api_v1_tests_report_get",
-"parameters": [
-{
-"name": "authorization",
-"in": "header",
-"required": false,
-"schema": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Authorization"
-}
-}
-],
-"responses": {
-"200": {
-"description": "Successful Response",
-"content": {
-"application/json": {
-"schema": {
-"type": "object",
-"additionalProperties": true,
-"title": "Response Get Tests Report Api V1 Tests Report Get"
-}
-}
-}
-},
-"422": {
-"description": "Validation Error",
-"content": {
-"application/json": {
-"schema": {
-"$ref": "#/components/schemas/HTTPValidationError"
-}
-}
-}
-}
-}
-}
-}
-},
-"components": {
-"schemas": {
-"CreateSessionRequest": {
-"properties": {
-"agent_id": {
-"type": "string",
-"title": "Agent Id"
-}
-},
-"type": "object",
-"required": [
-"agent_id"
-],
-"title": "CreateSessionRequest"
-},
-"DecisionRequest": {
-"properties": {
-"decision": {
-"type": "string",
-"title": "Decision"
-},
-"comment": {
-"type": "string",
-"title": "Comment",
-"default": ""
-}
-},
-"type": "object",
-"required": [
-"decision"
-],
-"title": "DecisionRequest"
-},
-"ExecuteActionRequest": {
-"properties": {
-"action_type": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "null"
-}
-],
-"title": "Action Type"
-},
-"arguments": {
-"additionalProperties": true,
-"type": "object",
-"title": "Arguments"
-}
-},
-"type": "object",
-"title": "ExecuteActionRequest"
-},
-"HTTPValidationError": {
-"properties": {
-"detail": {
-"items": {
-"$ref": "#/components/schemas/ValidationError"
-},
-"type": "array",
-"title": "Detail"
-}
-},
-"type": "object",
-"title": "HTTPValidationError"
-},
-"LoadReviewRequest": {
-"properties": {
-"session_id": {
-"type": "string",
-"title": "Session Id"
-},
-"review_id": {
-"type": "string",
-"title": "Review Id"
-}
-},
-"type": "object",
-"required": [
-"session_id",
-"review_id"
-],
-"title": "LoadReviewRequest"
-},
-"LoginRequest": {
-"properties": {
-"user_id": {
-"type": "string",
-"title": "User Id"
-},
-"password": {
-"type": "string",
-"title": "Password"
-}
-},
-"type": "object",
-"required": [
-"user_id",
-"password"
-],
-"title": "LoginRequest"
-},
-"MessageRequest": {
-"properties": {
-"session_id": {
-"type": "string",
-"title": "Session Id"
-},
-"text": {
-"type": "string",
-"title": "Text"
-}
-},
-"type": "object",
-"required": [
-"session_id",
-"text"
-],
-"title": "MessageRequest"
-},
-"PolicyProposalRequest": {
-"properties": {
-"base_version": {
-"type": "integer",
-"title": "Base Version"
-},
-"policy": {
-"additionalProperties": true,
-"type": "object",
-"title": "Policy"
-},
-"note": {
-"type": "string",
-"title": "Note",
-"default": ""
-}
-},
-"type": "object",
-"required": [
-"base_version",
-"policy"
-],
-"title": "PolicyProposalRequest"
-},
-"ReplayInitRequest": {
-"properties": {
-"script_id": {
-"type": "string",
-"title": "Script Id"
-},
-"reset": {
-"type": "boolean",
-"title": "Reset",
-"default": true
-}
-},
-"type": "object",
-"required": [
-"script_id"
-],
-"title": "ReplayInitRequest"
-},
-"ReplayStepRequest": {
-"properties": {
-"session_id": {
-"type": "string",
-"title": "Session Id"
-},
-"step_id": {
-"type": "string",
-"title": "Step Id"
-}
-},
-"type": "object",
-"required": [
-"session_id",
-"step_id"
-],
-"title": "ReplayStepRequest"
-},
-"ResetTaintRequest": {
-"properties": {
-"reason": {
-"type": "string",
-"title": "Reason"
-}
-},
-"type": "object",
-"required": [
-"reason"
-],
-"title": "ResetTaintRequest"
-},
-"SetModeRequest": {
-"properties": {
-"mode": {
-"type": "string",
-"title": "Mode"
-}
-},
-"type": "object",
-"required": [
-"mode"
-],
-"title": "SetModeRequest"
-},
-"TamperRequest": {
-"properties": {
-"seq": {
-"type": "integer",
-"minimum": 1,
-"title": "Seq"
-},
-"field": {
-"type": "string",
-"minLength": 1,
-"title": "Field"
-},
-"value": {
-"type": "string",
-"title": "Value"
-}
-},
-"type": "object",
-"required": [
-"seq",
-"field",
-"value"
-],
-"title": "TamperRequest"
-},
-"ValidationError": {
-"properties": {
-"loc": {
-"items": {
-"anyOf": [
-{
-"type": "string"
-},
-{
-"type": "integer"
-}
-]
-},
-"type": "array",
-"title": "Location"
-},
-"msg": {
-"type": "string",
-"title": "Message"
-},
-"type": {
-"type": "string",
-"title": "Error Type"
-},
-"input": {
-"title": "Input"
-},
-"ctx": {
-"type": "object",
-"title": "Context"
-}
-},
-"type": "object",
-"required": [
-"loc",
-"msg",
-"type"
-],
-"title": "ValidationError"
-}
-}
-}
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sentinel",
+    "description": "Security control plane for AI agents (PromptShield + ActionGate + BreachPath).",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Health check \u2014 no auth required (api.md \u00a72.10).",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/verify": {
+      "get": {
+        "summary": "Get Ledger Verify Root",
+        "operationId": "get_ledger_verify_root_ledger_verify_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Ledger Verify Root Ledger Verify Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "description": "Authenticate a human user and return a signed bearer token.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Login Api V1 Auth Login Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get Me",
+        "description": "Return the profile and roles of the currently authenticated human.",
+        "operationId": "get_me_api_v1_auth_me_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Me Api V1 Auth Me Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List Users",
+        "description": "Return all users for the user switcher.",
+        "operationId": "list_users_api_v1_users_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "title": "Response List Users Api V1 Users Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Create Session",
+        "description": "Create a new session for an agent, owned by the authenticated human.",
+        "operationId": "create_session_api_v1_sessions_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Create Session Api V1 Sessions Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Get Session",
+        "description": "Get session details including taint history.",
+        "operationId": "get_session_api_v1_sessions__session_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Session Api V1 Sessions  Session Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/taint/reset": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Reset Taint",
+        "description": "Reset session taint level to 0 (clean). Approver or admin role required.",
+        "operationId": "reset_taint_api_v1_sessions__session_id__taint_reset_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetTaintRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Reset Taint Api V1 Sessions  Session Id  Taint Reset Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ledger": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "List Ledger Entries",
+        "description": "List ledger entries with optional filters.",
+        "operationId": "list_ledger_entries_api_v1_ledger_get",
+        "parameters": [
+          {
+            "name": "module",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by module",
+              "default": "",
+              "title": "Module"
+            },
+            "description": "Filter by module"
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by event_type",
+              "default": "",
+              "title": "Event Type"
+            },
+            "description": "Filter by event_type"
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by subject",
+              "default": "",
+              "title": "Subject"
+            },
+            "description": "Filter by subject"
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by outcome",
+              "default": "",
+              "title": "Outcome"
+            },
+            "description": "Filter by outcome"
+          },
+          {
+            "name": "from_seq",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Starting seq number",
+              "title": "From Seq"
+            },
+            "description": "Starting seq number"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Max entries to return",
+              "default": 100,
+              "title": "Limit"
+            },
+            "description": "Max entries to return"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "title": "Response List Ledger Entries Api V1 Ledger Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ledger/verify": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "Verify Ledger",
+        "description": "Walk and verify the hash chain integrity.",
+        "operationId": "verify_ledger_api_v1_ledger_verify_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Verify Ledger Api V1 Ledger Verify Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ledger/{seq}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "Get Ledger Entry",
+        "description": "Get a single ledger entry with its payload.",
+        "operationId": "get_ledger_entry_api_v1_ledger__seq__get",
+        "parameters": [
+          {
+            "name": "seq",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Seq"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Ledger Entry Api V1 Ledger  Seq  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/llm/mode": {
+      "get": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Get Llm Mode",
+        "description": "Get current LLM adapter mode and circuit breaker state.",
+        "operationId": "get_llm_mode_api_v1_llm_mode_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Llm Mode Api V1 Llm Mode Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Set Llm Mode",
+        "description": "Switch LLM adapter mock mode (the 'kill the LLM' toggle).",
+        "operationId": "set_llm_mode_api_v1_llm_mode_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetModeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Set Llm Mode Api V1 Llm Mode Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/v1/actions": {
+      "post": {
+        "tags": [
+          "agent-actions"
+        ],
+        "summary": "Propose Agent Action",
+        "description": "Propose an action through ActionGate.\nRejects any request body containing 'agent_id' (AU-01).",
+        "operationId": "propose_agent_action_agent_v1_actions_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Propose Agent Action Agent V1 Actions Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/v1/actions/{action_id}": {
+      "get": {
+        "tags": [
+          "agent-actions"
+        ],
+        "summary": "Get Agent Action",
+        "description": "Get status and details of an action owned by the authenticated agent.",
+        "operationId": "get_agent_action_agent_v1_actions__action_id__get",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Agent Action Agent V1 Actions  Action Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/v1/actions/{action_id}/execute": {
+      "post": {
+        "tags": [
+          "agent-actions"
+        ],
+        "summary": "Execute Agent Action",
+        "description": "Execute an approved action.",
+        "operationId": "execute_agent_action_agent_v1_actions__action_id__execute_post",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Execute Agent Action Agent V1 Actions  Action Id  Execute Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/v1/ingress": {
+      "post": {
+        "tags": [
+          "ingress"
+        ],
+        "summary": "Agent Ingress",
+        "description": "Agent plane input screening (api.md \u00a71.2, PS-01..PS-16).",
+        "operationId": "agent_ingress_agent_v1_ingress_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Agent Ingress Agent V1 Ingress Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/v1/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "agent-sessions"
+        ],
+        "summary": "Get Agent Session",
+        "description": "Get session info for the authenticated agent.\nIf session belongs to another agent, returns 404 session.not_found (SS-04).",
+        "operationId": "get_agent_session_agent_v1_sessions__session_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Agent Session Agent V1 Sessions  Session Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals": {
+      "get": {
+        "tags": [
+          "approvals"
+        ],
+        "summary": "List Approvals",
+        "description": "List approvals with optional filters.",
+        "operationId": "list_approvals_api_v1_approvals_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by status (pending, approved, rejected, expired, consumed)",
+              "default": "",
+              "title": "Status"
+            },
+            "description": "Filter by status (pending, approved, rejected, expired, consumed)"
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by kind (action, ingress_review, policy.update)",
+              "default": "",
+              "title": "Kind"
+            },
+            "description": "Filter by kind (action, ingress_review, policy.update)"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response List Approvals Api V1 Approvals Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{approval_id}": {
+      "get": {
+        "tags": [
+          "approvals"
+        ],
+        "summary": "Get Approval Details",
+        "description": "Get full approval record with reviewer view (AG-15).",
+        "operationId": "get_approval_details_api_v1_approvals__approval_id__get",
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Approval Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Approval Details Api V1 Approvals  Approval Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{approval_id}/decision": {
+      "post": {
+        "tags": [
+          "approvals"
+        ],
+        "summary": "Submit Approval Decision",
+        "description": "Submit approval decision (approve or reject). Checks self-approval and roles.",
+        "operationId": "submit_approval_decision_api_v1_approvals__approval_id__decision_post",
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Approval Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Submit Approval Decision Api V1 Approvals  Approval Id  Decision Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registries/agents": {
+      "get": {
+        "tags": [
+          "registries"
+        ],
+        "summary": "Get Agents",
+        "description": "Return registered agents.",
+        "operationId": "get_agents_api_v1_registries_agents_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "title": "Response Get Agents Api V1 Registries Agents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registries/action-types": {
+      "get": {
+        "tags": [
+          "registries"
+        ],
+        "summary": "Get Action Types",
+        "description": "Return registered action types.",
+        "operationId": "get_action_types_api_v1_registries_action_types_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "title": "Response Get Action Types Api V1 Registries Action Types Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policy": {
+      "get": {
+        "tags": [
+          "policy"
+        ],
+        "summary": "Get Active Policy",
+        "description": "Retrieve currently active policy document and version (api.md \u00a72.5).",
+        "operationId": "get_active_policy_api_v1_policy_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Active Policy Api V1 Policy Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policy/versions": {
+      "get": {
+        "tags": [
+          "policy"
+        ],
+        "summary": "List Policy Versions",
+        "description": "List all policy versions in chronological order.",
+        "operationId": "list_policy_versions_api_v1_policy_versions_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "title": "Response List Policy Versions Api V1 Policy Versions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policy/versions/{v}": {
+      "get": {
+        "tags": [
+          "policy"
+        ],
+        "summary": "Get Policy Version",
+        "description": "Retrieve a specific policy version document.",
+        "operationId": "get_policy_version_api_v1_policy_versions__v__get",
+        "parameters": [
+          {
+            "name": "v",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "V"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Policy Version Api V1 Policy Versions  V  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policy/diff": {
+      "get": {
+        "tags": [
+          "policy"
+        ],
+        "summary": "Diff Policy Versions",
+        "description": "Compute RFC 6902-style diff between two policy versions.",
+        "operationId": "diff_policy_versions_api_v1_policy_diff_get",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "To"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "title": "Response Diff Policy Versions Api V1 Policy Diff Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policy/proposals": {
+      "post": {
+        "tags": [
+          "policy"
+        ],
+        "summary": "Propose Policy Change",
+        "description": "Propose a policy modification requiring second-admin approval (PE-06, X-07).",
+        "operationId": "propose_policy_change_api_v1_policy_proposals_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyProposalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Propose Policy Change Api V1 Policy Proposals Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph": {
+      "get": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Get Graph",
+        "description": "Get active access graph model with version and warnings (api.md \u00a72.6).",
+        "operationId": "get_graph_api_v1_graph_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Graph Api V1 Graph Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Upload Graph",
+        "description": "Upload new graph model (admin only, api.md \u00a72.6).",
+        "operationId": "upload_graph_api_v1_graph_put",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "json",
+              "title": "Format"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Upload Graph Api V1 Graph Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/versions": {
+      "get": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Get Versions",
+        "description": "List historical graph versions (api.md \u00a72.6).",
+        "operationId": "get_versions_api_v1_graph_versions_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "title": "Response Get Versions Api V1 Graph Versions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/validate": {
+      "post": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Validate Graph Upload",
+        "description": "Dry run validation of uploaded graph model without state change (api.md \u00a72.6).",
+        "operationId": "validate_graph_upload_api_v1_graph_validate_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Validate Graph Upload Api V1 Graph Validate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/changes": {
+      "post": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Post Changes",
+        "description": "Apply atomic list of graph changes (admin only, api.md \u00a72.6, BP-17).",
+        "operationId": "post_changes_api_v1_graph_changes_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Post Changes Api V1 Graph Changes Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/routes": {
+      "get": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Get Routes",
+        "description": "Find all simple attack routes within max_depth (api.md \u00a72.6, BP-03..BP-05).",
+        "operationId": "get_routes_api_v1_graph_routes_get",
+        "parameters": [
+          {
+            "name": "max_depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Max Depth"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Routes Api V1 Graph Routes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/routes/{path_id}": {
+      "get": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Get Route By Id",
+        "description": "Get single attack route with full plain-language explanation (api.md \u00a72.6).",
+        "operationId": "get_route_by_id_api_v1_graph_routes__path_id__get",
+        "parameters": [
+          {
+            "name": "path_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Path Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Route By Id Api V1 Graph Routes  Path Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/remediations": {
+      "get": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Get Remediations",
+        "description": "Get remediation candidates ranked by broken routes and greedy set cover plan (api.md \u00a72.6, BP-07).",
+        "operationId": "get_remediations_api_v1_graph_remediations_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Remediations Api V1 Graph Remediations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/remediations/{edge_id}/preview": {
+      "post": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Preview Edge Remediation",
+        "description": "Dry run preview of removing an edge (any human, api.md \u00a72.6, BP-08).",
+        "operationId": "preview_edge_remediation_api_v1_graph_remediations__edge_id__preview_post",
+        "parameters": [
+          {
+            "name": "edge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Edge Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Preview Edge Remediation Api V1 Graph Remediations  Edge Id  Preview Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/remediations/{edge_id}/apply": {
+      "post": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Apply Edge Remediation",
+        "description": "Apply edge removal remediation (admin only, api.md \u00a72.6, BP-08).",
+        "operationId": "apply_edge_remediation_api_v1_graph_remediations__edge_id__apply_post",
+        "parameters": [
+          {
+            "name": "edge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Edge Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Apply Edge Remediation Api V1 Graph Remediations  Edge Id  Apply Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/blast/{node_id}": {
+      "get": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Get Node Blast",
+        "description": "Get blast radius metrics for a node (api.md \u00a72.6, BP-12).",
+        "operationId": "get_node_blast_api_v1_graph_blast__node_id__get",
+        "parameters": [
+          {
+            "name": "node_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Node Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Node Blast Api V1 Graph Blast  Node Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/graph/derive-entry-points": {
+      "post": {
+        "tags": [
+          "breachpath"
+        ],
+        "summary": "Post Derive Entry Points",
+        "description": "Derive entry points from action type registry (admin only, api.md \u00a72.6, BP-11, X-03).",
+        "operationId": "post_derive_entry_points_api_v1_graph_derive_entry_points_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Post Derive Entry Points Api V1 Graph Derive Entry Points Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sandbox/message": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Post Sandbox Message",
+        "description": "Run an agent interaction turn through PromptShield and ActionGate.",
+        "operationId": "post_sandbox_message_api_v1_sandbox_message_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Post Sandbox Message Api V1 Sandbox Message Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sandbox/load-review": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Post Sandbox Load Review",
+        "description": "Execute tool:read_reviews with a specific review ID and return screened result.",
+        "operationId": "post_sandbox_load_review_api_v1_sandbox_load_review_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Post Sandbox Load Review Api V1 Sandbox Load Review Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sandbox/replay": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Post Sandbox Replay",
+        "description": "Start scripted replay (DEMO-01, demo-script.md \u00a73).",
+        "operationId": "post_sandbox_replay_api_v1_sandbox_replay_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayInitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Post Sandbox Replay Api V1 Sandbox Replay Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sandbox/replay/step": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Post Sandbox Replay Step",
+        "description": "Execute a single scripted replay step and verify expected matches.",
+        "operationId": "post_sandbox_replay_step_api_v1_sandbox_replay_step_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayStepRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Post Sandbox Replay Step Api V1 Sandbox Replay Step Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sandbox/outbox": {
+      "get": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Get Sandbox Outbox",
+        "description": "Retrieve simulated outbox emails and fake DB operations.",
+        "operationId": "get_sandbox_outbox_api_v1_sandbox_outbox_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Sandbox Outbox Api V1 Sandbox Outbox Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sandbox/reset": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Post Sandbox Reset",
+        "description": "Reset sandbox environment (admin only, demo mode only).",
+        "operationId": "post_sandbox_reset_api_v1_sandbox_reset_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Post Sandbox Reset Api V1 Sandbox Reset Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/decisions": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Get Decisions",
+        "description": "Poll feed of ingress and action decisions.",
+        "operationId": "get_decisions_api_v1_decisions_get",
+        "parameters": [
+          {
+            "name": "since_seq",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Since Seq"
+            }
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Module"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Outcome"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Decisions Api V1 Decisions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stream": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Stream Decisions",
+        "description": "SSE live decisions stream (UI-02, architecture.md \u00a73).",
+        "operationId": "stream_decisions_api_v1_stream_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/promptshield/scan": {
+      "post": {
+        "tags": [
+          "promptshield"
+        ],
+        "summary": "Promptshield Lab Scan",
+        "description": "Human plane test scan (api.md \u00a72.7, PS-06).",
+        "operationId": "promptshield_lab_scan_api_v1_promptshield_scan_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Promptshield Lab Scan Api V1 Promptshield Scan Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/promptshield/policy": {
+      "get": {
+        "tags": [
+          "promptshield"
+        ],
+        "summary": "Get Promptshield Policy",
+        "description": "Get active ingress table and thresholds (api.md \u00a72.7).",
+        "operationId": "get_promptshield_policy_api_v1_promptshield_policy_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Promptshield Policy Api V1 Promptshield Policy Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/benchmark/run": {
+      "post": {
+        "tags": [
+          "benchmark"
+        ],
+        "summary": "Run Benchmark Endpoint",
+        "description": "Run benchmark evaluation on held-out test split (PS-08).",
+        "operationId": "run_benchmark_endpoint_api_v1_benchmark_run_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Run Benchmark Endpoint Api V1 Benchmark Run Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/benchmark/latest": {
+      "get": {
+        "tags": [
+          "benchmark"
+        ],
+        "summary": "Get Latest Benchmark",
+        "description": "Retrieve the most recent benchmark run metrics (PS-08).",
+        "operationId": "get_latest_benchmark_api_v1_benchmark_latest_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Latest Benchmark Api V1 Benchmark Latest Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/benchmark/cases": {
+      "get": {
+        "tags": [
+          "benchmark"
+        ],
+        "summary": "Get Benchmark Cases",
+        "description": "Retrieve benchmark cases for tuning.\nTest split is strictly hidden (403 benchmark.test_split_hidden).",
+        "operationId": "get_benchmark_cases_api_v1_benchmark_cases_get",
+        "parameters": [
+          {
+            "name": "split",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "dev",
+              "title": "Split"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Benchmark Cases Api V1 Benchmark Cases Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/demo/tamper": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Post Demo Tamper",
+        "description": "Tamper directly with a ledger row in SQL to simulate an insider attack.",
+        "operationId": "post_demo_tamper_api_v1_demo_tamper_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TamperRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Post Demo Tamper Api V1 Demo Tamper Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tests/run": {
+      "post": {
+        "tags": [
+          "tests"
+        ],
+        "summary": "Post Tests Run",
+        "description": "Trigger background test suite execution.",
+        "operationId": "post_tests_run_api_v1_tests_run_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Post Tests Run Api V1 Tests Run Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tests/report": {
+      "get": {
+        "tags": [
+          "tests"
+        ],
+        "summary": "Get Tests Report",
+        "description": "Retrieve the latest test report grouped by requirement ID.",
+        "operationId": "get_tests_report_api_v1_tests_report_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Tests Report Api V1 Tests Report Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateSessionRequest": {
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_id"
+        ],
+        "title": "CreateSessionRequest"
+      },
+      "DecisionRequest": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "title": "Decision"
+          },
+          "comment": {
+            "type": "string",
+            "title": "Comment",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "title": "DecisionRequest"
+      },
+      "ExecuteActionRequest": {
+        "properties": {
+          "action_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Type"
+          },
+          "arguments": {
+            "type": "object",
+            "title": "Arguments"
+          }
+        },
+        "type": "object",
+        "title": "ExecuteActionRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoadReviewRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "review_id": {
+            "type": "string",
+            "title": "Review Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "review_id"
+        ],
+        "title": "LoadReviewRequest"
+      },
+      "LoginRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "MessageRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "text"
+        ],
+        "title": "MessageRequest"
+      },
+      "PolicyProposalRequest": {
+        "properties": {
+          "base_version": {
+            "type": "integer",
+            "title": "Base Version"
+          },
+          "policy": {
+            "type": "object",
+            "title": "Policy"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_version",
+          "policy"
+        ],
+        "title": "PolicyProposalRequest"
+      },
+      "ReplayInitRequest": {
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "title": "Script Id"
+          },
+          "reset": {
+            "type": "boolean",
+            "title": "Reset",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "script_id"
+        ],
+        "title": "ReplayInitRequest"
+      },
+      "ReplayStepRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "step_id": {
+            "type": "string",
+            "title": "Step Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "step_id"
+        ],
+        "title": "ReplayStepRequest"
+      },
+      "ResetTaintRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "ResetTaintRequest"
+      },
+      "SetModeRequest": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "title": "SetModeRequest"
+      },
+      "TamperRequest": {
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Seq"
+          },
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Field"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "field",
+          "value"
+        ],
+        "title": "TamperRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
 }

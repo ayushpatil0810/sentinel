@@ -60,7 +60,7 @@ def run_benchmark_endpoint(
                 "run_id": report["run_id"],
                 "split": "test",
                 "n": report["n"],
-                "f1": report["f1"],
+                "f1": str(report["f1"]),
                 "run_by": human.user_id,
             },
         )
@@ -77,7 +77,7 @@ def get_latest_benchmark(
 ) -> dict[str, Any]:
     """Retrieve the most recent benchmark run metrics (PS-08)."""
     conn = get_connection()
-    row = fetchone(conn, "SELECT result_json FROM benchmark_runs ORDER BY ts DESC LIMIT 1")
+    row = fetchone(conn, "SELECT result_json FROM benchmark_runs ORDER BY rowid DESC LIMIT 1")
     if not row:
         raise SentinelError(
             status_code=404,

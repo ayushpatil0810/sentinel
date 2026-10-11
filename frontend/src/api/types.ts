@@ -1,11 +1,11 @@
 // Types transcribed from docs/api.md and docs/data-models.md.
 
-export type Role = 'requester' | 'approver' | 'admin'
-export type Outcome = 'allow' | 'block' | 'hold' | 'sanitize' | 'escalate' | 'ok' | 'refused' | 'info'
-export type DecisionPath = 'rules' | 'rules+llm' | 'fallback' | 'n/a'
+export type Role = "requester" | "approver" | "admin"
+export type Outcome = "allow" | "block" | "hold" | "sanitize" | "escalate" | "ok" | "refused" | "info"
+export type DecisionPath = "rules" | "rules+llm" | "fallback" | "n/a"
 export type TaintLevel = 0 | 1 | 2
-export type TaintLabel = 'clean' | 'untrusted_present' | 'flagged'
-export type LlmModeName = 'ok' | 'down' | 'says_safe_always' | 'timeout' | 'garbage'
+export type TaintLabel = "clean" | "untrusted_present" | "flagged"
+export type LlmModeName = "ok" | "down" | "says_safe_always" | "timeout" | "garbage"
 
 export interface User {
   user_id: string
@@ -46,12 +46,16 @@ export interface Session {
   taint_reasons?: string[]
 }
 
+export type SourceTier = "user" | "retrieved_document" | "tool_output" | "developer"
+
 export interface Finding {
   type: string
   confidence_pct: number
   detector: string
   start: number
   end: number
+  start_char?: number
+  end_char?: number
   evidence: string
   encoding?: string
 }
@@ -76,7 +80,7 @@ export interface ReviewPreset {
 }
 
 export interface SandboxStep {
-  kind: 'ingress' | 'action' | 'reply' | 'user' | 'system'
+  kind: "ingress" | "action" | "reply" | "user" | "system"
   request_id?: string
   outcome?: Outcome
   text: string
@@ -100,7 +104,7 @@ export interface LoadReviewResponse {
   steps: SandboxStep[]
 }
 
-export type ReplayStatus = 'pending' | 'running' | 'matched' | 'mismatch'
+export type ReplayStatus = "pending" | "running" | "matched" | "mismatch"
 
 export interface ReplayStepInfo {
   id: string
@@ -125,7 +129,14 @@ export interface ReplayStepResult {
 }
 
 export interface Outbox {
-  emails: { outbox_id: number; ts: string; to: string[]; subject: string; body_excerpt: string; simulated: true }[]
+  emails: {
+    outbox_id: number
+    ts: string
+    to: string[]
+    subject: string
+    body_excerpt: string
+    simulated: true
+  }[]
   db_ops: { op_id: number; op: string; resource: string; record_count: number }[]
 }
 
@@ -145,7 +156,10 @@ export interface DecisionItem {
   reason: string
   rule_ids: string[]
   decision_path: DecisionPath
-  session_taint: TaintLevel | TaintLabel | { taint_level: TaintLevel; taint_label?: TaintLabel } | null
+  session_taint: TaintLevel | TaintLabel | {
+    taint_level: TaintLevel
+    taint_label?: TaintLabel
+  } | null
 }
 
 export interface DecisionsResponse {
@@ -171,9 +185,9 @@ export interface LedgerEntry {
   payload?: unknown
 }
 
-export type ApprovalKind = 'action' | 'ingress_review' | 'policy.update'
+export type ApprovalKind = "action" | "ingress_review" | "policy.update"
 // 'consumed' per the OpenAPI query description; 'used' kept for the mock
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'consumed' | 'used'
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "expired" | "consumed" | "used"
 
 export interface ApprovalSummary {
   approval_id: string
@@ -188,7 +202,12 @@ export interface ApprovalSummary {
 export interface ApprovalReview {
   action_type?: string
   arguments?: Record<string, unknown>
-  llm?: { summary: string; risk_flags: string[]; suggested_outcome: string; label: 'advisory' } | null
+  llm?: {
+    summary: string
+    risk_flags: string[]
+    suggested_outcome: string
+    label: "advisory"
+  } | null
   rule_ids?: string[]
   rule_reasons?: Record<string, string>
   taint_level?: TaintLevel
@@ -216,7 +235,12 @@ export interface ApprovalDecisionResponse {
 }
 
 export interface ApiErrorBody {
-  error: { code: string; message: string; details?: Record<string, unknown>; request_id?: string }
+  error: {
+    code: string
+    message: string
+    details?: Record<string, unknown>
+    request_id?: string
+  }
 }
 
 export class ApiError extends Error {
@@ -225,7 +249,14 @@ export class ApiError extends Error {
   details?: Record<string, unknown>
   requestId?: string
   network: boolean
-  constructor(status: number, code: string, message: string, details?: Record<string, unknown>, requestId?: string, network = false) {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    details?: Record<string, unknown>,
+    requestId?: string,
+    network = false,
+  ) {
     super(message)
     this.status = status
     this.code = code
@@ -233,4 +264,209 @@ export class ApiError extends Error {
     this.requestId = requestId
     this.network = network
   }
+}
+
+// ── BreachPath Graph Types ──
+export interface GraphNode {
+  id: string
+  type: "user" | "role" | "service" | "agent" | "tool" | "asset" | "external"
+  name: string
+  entry_point?: boolean
+  sensitivity?: "none" | "low" | "medium" | "high" | "critical"
+  entry_source?: "manual" | "derived" | null
+  attrs?: Record<string, unknown>
+}
+
+export interface GraphEdge {
+  id: string
+  src: string
+  dst: string
+  type: "member_of" | "can_assume" | "can_invoke" | "can_read" | "can_write" | "trusts" | "network_reachable" | "ingests_from" | "calls" | string
+  attrs?: Record<string, unknown>
+}
+
+export interface GraphModel {
+  schema?: string
+  name?: string
+  settings?: {
+    max_depth?: number
+    max_paths?: number
+    time_budget_ms?: number
+    sensitive_min?: string
+  }
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+}
+
+export interface GraphResponse extends GraphModel {
+  graph_version: number
+  warnings?: string[]
+}
+
+export interface GraphRouteStep {
+  from: string
+  edge_id: string
+  edge_type: string
+  to: string
+  reversed: boolean
+  text: string
+}
+
+export interface GraphRoute {
+  path_id: string
+  entry: string
+  asset: string
+  asset_sensitivity: string
+  length: number
+  steps: GraphRouteStep[]
+  summary: string
+  short?: string
+}
+
+export interface GraphRoutesResponse {
+  graph_version: number
+  max_depth: number
+  truncated: boolean
+  truncation_reason: string | null
+  warning: string | null
+  routes: GraphRoute[]
+}
+
+export interface RemediationSuggestion {
+  edge_id: string
+  type?: string
+  breaks: number
+  path_ids: string[]
+  rationale: string
+  preview: {
+    removed: string[]
+    remaining: string[]
+    new: string[]
+  }
+}
+
+export interface RemediationsResponse {
+  suggestions: RemediationSuggestion[]
+  plan?: { edge_id: string; covers: number }[]
+}
+
+export interface RemediationPreviewResponse {
+  removed: string[]
+  remaining: string[]
+  new: string[]
+  comparison_reliable: boolean
+}
+
+export interface GraphDiff {
+  from_version: number
+  to_version: number
+  comparison_reliable: boolean
+  removed: string[]
+  remaining: string[]
+  new: string[]
+  routes?: {
+    removed: GraphRoute[]
+    new: GraphRoute[]
+  }
+}
+
+export interface GraphVersionItem {
+  graph_version: number
+  created_by: string
+  created_at: string
+  change_summary: unknown
+}
+
+export interface BlastRadius {
+  node_id: string
+  on_attack_path: boolean
+  paths_count: number
+  min_distance_to_sensitive?: number | null
+  max_sensitivity_reachable?: string
+  level: "low" | "medium" | "high"
+  reason: string | null
+}
+
+// ── PromptShield Lab & Benchmark Types ──
+export interface LabScanResponse extends IngressResult {
+  text_sanitized?: string
+}
+
+export interface BenchmarkMetrics {
+  run_id: string
+  ts: string
+  policy_version: number
+  split: string
+  n: number
+  confusion: { tp: number; fp: number; tn: number; fn: number }
+  precision: { value: number; ci95?: [number, number] }
+  recall: { value: number; ci95?: [number, number] }
+  f1: number
+  fpr: { value: number; ci95?: [number, number] }
+  per_category: Record<string, number | { total: number; recall?: number }>
+  per_tier: Record<string, number | { total: number; recall?: number }>
+  direct_vs_indirect?: {
+    direct_recall?: number
+    indirect_recall?: number
+  }
+  sanitize_quality?: {
+    cases: number
+    preserved_pct: number
+    rescan_clean_pct: number
+  }
+  misses: {
+    id: string
+    category: string
+    tier?: string
+    excerpt?: string
+    explanation: string
+  }[]
+  false_positives: {
+    id: string
+    category?: string
+    tier?: string
+    excerpt?: string
+    explanation: string
+  }[]
+}
+
+// ── Policy Types ──
+export interface PolicyDocument {
+  version: number
+  name?: string
+  action_rules?: unknown[]
+  ingress?: unknown
+  settings?: unknown
+}
+
+export interface PolicyVersionItem {
+  version: number
+  created_by: string
+  approved_by: string | null
+  activated_at: string | null
+  content_hash: string
+}
+
+export interface PolicyProposalResponse {
+  proposal_id: string
+  approval_id: string
+  outcome: Outcome
+  rule_ids: string[]
+  fingerprint: string
+  diff: { op: string; path: string; value?: unknown }[]
+}
+
+// ── Test Report Types ──
+export interface TestCaseResult {
+  test: string
+  status: "passed" | "failed" | "skipped"
+  duration_ms: number
+}
+
+export interface TestReportResponse {
+  run_id: string
+  ts: string
+  totals: { passed: number; failed: number; skipped: number }
+  by_requirement: Record<string, TestCaseResult[]>
+  untested_requirements: string[]
 }

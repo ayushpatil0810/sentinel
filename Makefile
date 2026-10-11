@@ -20,6 +20,7 @@ REPORTS_DIR  = reports
 # ─────────────────────────────────────────────
 setup:
 	$(PIP) install -r requirements.txt
+	cd frontend && pnpm install
 
 # ─────────────────────────────────────────────
 # seed: delete DB and rebuild all synthetic data
@@ -28,10 +29,10 @@ seed:
 	$(PYTHON) $(SEED_SCRIPT) --db $(DB_FILE)
 
 # ─────────────────────────────────────────────
-# dev: start backend with reload (frontend is separate)
+# dev: start both backend and frontend
 # ─────────────────────────────────────────────
 dev:
-	SENTINEL_DB=$(DB_FILE) $(UVICORN) backend.app.main:app --reload --host 0.0.0.0 --port 8000
+	$(PYTHON) scripts/dev.py
 
 # ─────────────────────────────────────────────
 # test: full backend test suite
@@ -54,8 +55,8 @@ test-fast:
 # lint: ruff + mypy
 # ─────────────────────────────────────────────
 lint:
-	$(RUFF) check $(BACKEND_DIR) seed
-	$(MYPY) $(BACKEND_DIR)/app seed
+	$(RUFF) check $(BACKEND_DIR) seed scripts
+	$(MYPY) $(BACKEND_DIR)/app seed scripts
 
 # ─────────────────────────────────────────────
 # bench: PromptShield benchmark on test split only

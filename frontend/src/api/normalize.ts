@@ -14,12 +14,16 @@ import type {
   SandboxStep,
   Session,
   User,
-} from './types'
+} from "./types"
 
 type O = Record<string, unknown>
-const isObj = (v: unknown): v is O => typeof v === 'object' && v !== null && !Array.isArray(v)
-const str = (v: unknown) => (typeof v === 'string' ? v : undefined)
-const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : undefined)
+const isObj = (v: unknown): v is O =>
+  typeof v === "object" && v !== null && !Array.isArray(v)
+const str = (v: unknown) => (typeof v === "string" ? v : undefined)
+const strs = (v: unknown) =>
+  Array.isArray(v)
+    ? v.filter((x): x is string => typeof x === "string")
+    : undefined
 /** Accepts `[...]` or `{items: [...]}`. */
 export function list<T = O>(v: unknown): T[] {
   if (Array.isArray(v)) return v as T[]
@@ -29,52 +33,85 @@ export function list<T = O>(v: unknown): T[] {
 
 export const user = (v: unknown): User => {
   const o = isObj(v) ? v : {}
-  return { user_id: String(o.user_id ?? ''), display_name: String(o.display_name ?? o.user_id ?? ''), roles: (strs(o.roles) ?? []) as User['roles'] }
+  return {
+    user_id: String(o.user_id ?? ""),
+    display_name: String(o.display_name ?? o.user_id ?? ""),
+    roles: (strs(o.roles) ?? []) as User["roles"],
+  }
 }
 
 export const health = (v: unknown): Health => v as Health
 
-export const session = (v: unknown): Session => v as Session
+export const session = (v: unknown): Session => {
+  const o = isObj(v) ? v : {}
+  const rawReasons = Array.isArray(o.taint_reasons) ? o.taint_reasons : []
+  const taint_reasons = rawReasons.map((r: unknown) => {
+    if (typeof r === "string") return r
+    if (isObj(r) && typeof r.cause === "string") {
+      return r.source_ref ? `${r.cause} (${r.source_ref})` : r.cause
+    }
+    return String(r)
+  })
+  return {
+    session_id: String(o.session_id ?? ""),
+    agent_id: str(o.agent_id),
+    owner_user_id: str(o.owner_user_id),
+    taint_level: (typeof o.taint_level === "number"
+      ? o.taint_level
+      : 0) as Session["taint_level"],
+    taint_label: str(o.taint_label) as Session["taint_label"],
+    taint_reasons,
+  }
+}
 
-const STEP_KINDS = new Set(['ingress', 'action', 'reply', 'user', 'system'])
+const STEP_KINDS = new Set(["ingress", "action", "reply", "user", "system"])
 export function step(v: unknown): SandboxStep {
   const o = isObj(v) ? v : {}
-  const rawKind = str(o.kind) ?? 'system'
-  const kind = (rawKind === 'agent' ? 'reply' : STEP_KINDS.has(rawKind) ? rawKind : 'system') as SandboxStep['kind']
+  const rawKind = str(o.kind) ?? "system"
+  const kind = (
+    rawKind === "agent" ? "reply" : STEP_KINDS.has(rawKind) ? rawKind : "system"
+  ) as SandboxStep["kind"]
   const sess = isObj(o.session) ? o.session : undefined
   return {
     kind,
     request_id: str(o.request_id),
-    outcome: str(o.outcome) as SandboxStep['outcome'],
+    outcome: str(o.outcome) as SandboxStep["outcome"],
     // ingress steps carry the screened text the model received; null means withheld (block / escalate)
-    text: str(o.text) ?? str(o.text_for_model) ?? str(o.message) ?? (kind === 'ingress' ? '[withheld from the model]' : ''),
+    text:
+      str(o.text) ??
+      str(o.text_for_model) ??
+      str(o.message) ??
+      (kind === "ingress" ? "[withheld from the model]" : ""),
     reason: str(o.reason),
     rule_ids: strs(o.rule_ids),
-    decision_path: str(o.decision_path) as SandboxStep['decision_path'],
+    decision_path: str(o.decision_path) as SandboxStep["decision_path"],
     approval_id: str(o.approval_id) ?? str(o.review_id) ?? null,
     action_id: str(o.action_id) ?? null,
-    error_code: str(o.error_code) ?? (isObj(o.error) ? str(o.error.code) : undefined),
-    session: sess as SandboxStep['session'],
+    error_code:
+      str(o.error_code) ?? (isObj(o.error) ? str(o.error.code) : undefined),
+    session: sess as SandboxStep["session"],
   }
 }
-export const steps = (v: unknown): SandboxStep[] => (isObj(v) && Array.isArray(v.steps) ? v.steps.map(step) : [])
+export const steps = (v: unknown): SandboxStep[] =>
+  isObj(v) && Array.isArray(v.steps) ? v.steps.map(step) : []
 
 /** load-review: api.md says it returns the screened (ingress-shaped) result; also accept `{ingress, steps}`. */
 export function loadReview(v: unknown): SandboxStep[] {
   if (!isObj(v)) return []
   if (Array.isArray(v.steps) && v.steps.length) return v.steps.map(step)
-  const ing = isObj(v.ingress) ? v.ingress : 'outcome' in v ? v : null
-  return ing ? [step({ ...ing, kind: 'ingress' })] : []
+  const ing = isObj(v.ingress) ? v.ingress : "outcome" in v ? v : null
+  return ing ? [step({ ...ing, kind: "ingress" })] : []
 }
 
 export function replayStart(v: unknown): ReplayStartResponse {
   const o = isObj(v) ? v : {}
   return {
-    session_id: String(o.session_id ?? ''),
+    session_id: String(o.session_id ?? ""),
     steps: list<O>(o.steps).map((s) => ({
-      id: String(s.id ?? s.step_id ?? ''),
-      title: String(s.title ?? ''),
-      status: (str(s.status) ?? 'pending') as ReplayStartResponse['steps'][number]['status'],
+      id: String(s.id ?? s.step_id ?? ""),
+      title: String(s.title ?? ""),
+      status: (str(s.status) ??
+        "pending") as ReplayStartResponse["steps"][number]["status"],
       actor: str(s.actor),
     })),
   }
@@ -83,8 +120,8 @@ export function replayStart(v: unknown): ReplayStartResponse {
 export function replayStep(v: unknown): ReplayStepResult {
   const o = isObj(v) ? v : {}
   return {
-    step_id: String(o.step_id ?? ''),
-    actor: String(o.actor ?? ''),
+    step_id: String(o.step_id ?? ""),
+    actor: String(o.actor ?? ""),
     request_ids: strs(o.request_ids) ?? [],
     expected: isObj(o.expected) ? o.expected : {},
     actual: isObj(o.actual) ? o.actual : {},
@@ -95,23 +132,108 @@ export function replayStep(v: unknown): ReplayStepResult {
 
 export function outbox(v: unknown): Outbox {
   const o = isObj(v) ? v : {}
-  return { emails: list(o.emails) as Outbox['emails'], db_ops: list(o.db_ops) as Outbox['db_ops'] }
+  return {
+    emails: list(o.emails) as Outbox["emails"],
+    db_ops: list(o.db_ops) as Outbox["db_ops"],
+  }
 }
 
 export function decisions(v: unknown): DecisionsResponse {
-  const items = list<DecisionItem>(v).map((d) => ({ ...d, rule_ids: d.rule_ids ?? [] }))
-  const next = isObj(v) && typeof v.next_seq === 'number' ? v.next_seq : undefined
-  return { items, next_seq: next ?? (items.length ? Math.max(...items.map((i) => i.seq)) + 1 : 0) }
+  const items = list<DecisionItem>(v).map((d) => ({
+    ...d,
+    rule_ids: d.rule_ids ?? [],
+  }))
+  const next =
+    isObj(v) && typeof v.next_seq === "number" ? v.next_seq : undefined
+  return {
+    items,
+    next_seq:
+      next ?? (items.length ? Math.max(...items.map((i) => i.seq)) + 1 : 0),
+  }
 }
 
 export function ledgerEntry(v: unknown): LedgerEntry {
   const o = isObj(v) ? v : {}
   const entry = isObj(o.entry) ? { ...o.entry, ...o } : o
-  return { ...(entry as unknown as LedgerEntry), rule_ids: strs(entry.rule_ids) ?? [], payload: entry.payload ?? entry.redacted_payload ?? entry.payload_redacted }
+  return {
+    ...entry as unknown as LedgerEntry,
+    rule_ids: strs(entry.rule_ids) ?? [],
+    payload: entry.payload ?? entry.redacted_payload ?? entry.payload_redacted,
+  }
 }
 
-export const approvals = (v: unknown): ApprovalSummary[] => list<ApprovalSummary>(v)
-export const approval = (v: unknown): ApprovalRecord => {
+export const approvals = (v: unknown): ApprovalSummary[] =>
+  list<ApprovalSummary>(v)
+
+export function approval(v: unknown): ApprovalRecord {
   const o = isObj(v) ? v : {}
-  return { ...(o as unknown as ApprovalRecord), review: (isObj(o.review) ? o.review : {}) as ApprovalRecord['review'] }
+  const rawReview = isObj(o.review) ? o.review : {}
+  const actionObj = isObj(rawReview.action) ? rawReview.action : undefined
+  const llmSummaryObj = isObj(rawReview.llm_summary)
+    ? rawReview.llm_summary
+    : undefined
+  const existingLlm = isObj(rawReview.llm) ? rawReview.llm : undefined
+
+  let llm = existingLlm as ApprovalRecord["review"]["llm"]
+  if (!llm && llmSummaryObj) {
+    llm = {
+      summary: str(llmSummaryObj.text) ?? "",
+      risk_flags: [],
+      suggested_outcome: "hold",
+      label: "advisory",
+    }
+  }
+
+  const review: ApprovalRecord["review"] = {
+    action_type: str(actionObj?.action_type) ?? str(rawReview.action_type),
+    arguments: (isObj(actionObj?.arguments)
+      ? actionObj.arguments
+      : isObj(rawReview.arguments)
+        ? rawReview.arguments
+        : undefined) as Record<string, unknown> | undefined,
+    llm,
+    rule_ids: strs(rawReview.rule_ids),
+    rule_reasons: (isObj(rawReview.rule_reasons)
+      ? rawReview.rule_reasons
+      : undefined) as Record<string, string> | undefined,
+    taint_level:
+      typeof rawReview.taint_level === "number"
+        ? rawReview.taint_level as Session["taint_level"]
+        : undefined,
+    blast: isObj(rawReview.blast)
+      ? rawReview.blast as ApprovalRecord["review"]["blast"]
+      : undefined,
+    fingerprint: str(rawReview.fingerprint) ?? str(o.fingerprint),
+    decision_path: str(
+      rawReview.decision_path,
+    ) as ApprovalRecord["review"]["decision_path"],
+    diff: Array.isArray(rawReview.diff)
+      ? rawReview.diff as ApprovalRecord["review"]["diff"]
+      : undefined,
+    findings: Array.isArray(rawReview.findings)
+      ? rawReview.findings as ApprovalRecord["review"]["findings"]
+      : undefined,
+    text_redacted: str(rawReview.text_redacted),
+  }
+
+  const actionTypeStr = actionObj ? str(actionObj.action_type) : undefined
+  const targetStr = actionObj ? str(actionObj.target) : undefined
+  const generatedSummary = actionTypeStr
+    ? `${actionTypeStr}${targetStr ? ` to ${targetStr}` : ""}`
+    : `Approval ${o.approval_id}`
+
+  return {
+    approval_id: String(o.approval_id ?? ""),
+    kind: (str(o.kind) ?? "action") as ApprovalRecord["kind"],
+    status: (str(o.status) ?? "pending") as ApprovalRecord["status"],
+    requester: String(o.requester ?? ""),
+    created_at: String(o.created_at ?? ""),
+    expires_at: String(o.expires_at ?? ""),
+    summary: String(o.summary ?? generatedSummary),
+    approver: str(o.approver) ?? null,
+    comment: str(o.comment) ?? null,
+    signature: str(o.signature) ?? null,
+    decided_at: str(o.decided_at) ?? str(o.ts) ?? null,
+    review,
+  }
 }

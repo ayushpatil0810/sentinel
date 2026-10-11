@@ -36,6 +36,6 @@ def _check_no_float(obj: Any) -> None:
     if isinstance(obj, dict):
         for v in obj.values():
             _check_no_float(v)
-    elif isinstance(obj, (list, tuple)):
+    elif isinstance(obj, list | tuple):
         for item in obj:
             _check_no_float(item)

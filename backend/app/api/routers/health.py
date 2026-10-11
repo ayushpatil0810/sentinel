@@ -69,5 +69,6 @@ def health() -> JSONResponse:
             "graph_version": graph_version,
             "ledger_head": ledger_head,
             "llm_mode": settings.llm_mode,
+            "demo_mode": settings.demo_mode,
         },
     )

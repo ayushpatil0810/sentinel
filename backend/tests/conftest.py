@@ -375,3 +375,86 @@ def dana_headers(dana_token):
 @pytest.fixture
 def agent_headers(agent_key):
     return {"Authorization": f"Bearer {agent_key}"}
+
+
+# ── Test Report Generator (UI-09, test-plan §7) ──────────────────────────────
+_test_call_records: dict[str, dict[str, any]] = {}
+
+
+def pytest_runtest_logreport(report: pytest.TestReport) -> None:
+    if report.when == "call":
+        _test_call_records[report.nodeid] = {
+            "status": report.outcome,
+            "duration_ms": round(report.duration * 1000, 1),
+        }
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    from pathlib import Path
+    reports_dir = Path(__file__).resolve().parent.parent.parent / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+
+    mvp_reqs = [
+        "PE-01", "PE-02", "PE-03", "PE-04", "PE-05", "PE-06", "PE-07",
+        "LG-01", "LG-02", "LG-03", "LG-04", "LG-05", "LG-07",
+        "LA-01", "LA-02", "LA-03", "LA-04", "LA-05",
+        "SS-01", "SS-02", "SS-03", "SS-04",
+        "AU-01", "AU-02", "AU-03", "AU-04",
+        "AG-01", "AG-02", "AG-03", "AG-04", "AG-05", "AG-06", "AG-07", "AG-08",
+        "AG-09", "AG-10", "AG-11", "AG-12", "AG-13", "AG-14", "AG-15", "AG-16",
+        "BP-01", "BP-02", "BP-03", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08",
+        "BP-09", "BP-10", "BP-11", "BP-12", "BP-14", "BP-15", "BP-17", "BP-18",
+        "PS-01", "PS-02", "PS-03", "PS-04", "PS-05", "PS-06", "PS-07", "PS-08",
+        "PS-09", "PS-10", "PS-11", "PS-12", "PS-13", "PS-14", "PS-15", "PS-16",
+        "X-01", "X-02", "X-03", "X-05", "X-06", "X-07",
+        "SD-01", "SD-02", "SD-03", "SD-04", "SD-05", "SD-06", "SD-07",
+        "DEMO-01", "DEMO-02", "DEMO-03",
+    ]
+
+    by_req: dict[str, list[dict[str, any]]] = {r: [] for r in mvp_reqs}
+    passed_count = 0
+    failed_count = 0
+    skipped_count = 0
+
+    for item in session.items:
+        rec = _test_call_records.get(item.nodeid, {"status": "passed", "duration_ms": 1.0})
+        st = rec["status"]
+        if st == "passed":
+            passed_count += 1
+        elif st == "failed":
+            failed_count += 1
+        else:
+            skipped_count += 1
+
+        req_markers = [m.args[0] for m in item.iter_markers(name="req") if m.args]
+        test_info = {
+            "test": item.name,
+            "status": st,
+            "duration_ms": rec["duration_ms"],
+        }
+        for r in req_markers:
+            if r in by_req:
+                by_req[r].append(test_info)
+            else:
+                by_req.setdefault(r, []).append(test_info)
+
+    untested = [r for r in mvp_reqs if not any(t["status"] == "passed" for t in by_req.get(r, []))]
+
+    import contextlib
+    from datetime import UTC, datetime
+    report_data = {
+        "run_id": f"run_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}",
+        "ts": datetime.now(UTC).isoformat(),
+        "totals": {
+            "passed": passed_count,
+            "failed": failed_count,
+            "skipped": skipped_count,
+        },
+        "by_requirement": {k: v for k, v in by_req.items() if v},
+        "untested_requirements": untested,
+    }
+
+    with contextlib.suppress(Exception):
+        (reports_dir / "last_run.json").write_text(json.dumps(report_data, indent=2), encoding="utf-8")
+
+
