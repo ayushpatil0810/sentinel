@@ -1,0 +1,19 @@
+services:
+  sentinel:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      SENTINEL_DB: /app/data/sentinel.db
+      SENTINEL_SEED: "1337"
+      SENTINEL_DEMO_MODE: "1"
+      SENTINEL_LLM_MODE: ok
+      SENTINEL_HUMAN_KEY: demo-human-key-change-me
+      SENTINEL_APPROVAL_KEY: demo-approval-key-change-me
+      SENTINEL_EXEC_KEY: demo-exec-key-change-me
+      SENTINEL_AGENT_PEPPER: demo-pepper-change-me
+    volumes:
+      - "./data:/app/data"
+    command: >
+      sh -c "python -m seed.seed --if-empty &&
+             uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"

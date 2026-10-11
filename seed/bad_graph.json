@@ -1,0 +1,13 @@
+{
+  "schema": "sentinel.graph/1",
+  "nodes": [
+    {"id": "svc:a", "type": "service", "name": "A"},
+    {"id": "asset:db", "type": "asset", "name": "DB", "sensitivity": "high"},
+    {"id": "svc:ghostwriter", "name": "Ghostwriter"},
+    {"id": "asset:x", "type": "asset", "name": "X", "sensitivity": "severe"}
+  ],
+  "edges": [
+    {"id": "e-ok", "src": "svc:a", "dst": "asset:db", "type": "can_read"},
+    {"id": "e-bad", "src": "svc:a", "dst": "svc:ghost", "type": "calls"}
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "8f00a974e4e0da20a9a2d9c63a60b299c7b054a10f349d828a6f9971fb8fe476": {
+    "label": "suspicious",
+    "threat_types": [
+      "directive"
+    ],
+    "confidence": 60,
+    "rationale": "Addresses an AI inside a review"
+  },
+  "3f22a61f7496ed5bcadf6019fae01745281065c8a9509797790c2520f6404498": {
+    "label": "malicious",
+    "threat_types": [
+      "override",
+      "exfil_target"
+    ],
+    "confidence": 90,
+    "rationale": "Paraphrased instruction override and data transfer"
+  },
+  "ed65e5c9cd9955131b6198f8c5a8bf0d246250b85104c029855dab9309a0512c": {
+    "summary": "Sends a customer export to an address outside acme.example.",
+    "risk_flags": [
+      "external_recipient",
+      "bulk_data"
+    ],
+    "suggested_outcome": "hold"
+  },
+  "9138cf151741f20be30d7f4ef9317d6653ebae9767209184fe631cd42c0c2b1e": {
+    "summary": "Reads 5 customer rows from the customer database.",
+    "risk_flags": [
+      "sensitive_resource",
+      "taint_context"
+    ],
+    "suggested_outcome": "hold"
+  }
+}

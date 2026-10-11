@@ -1,0 +1,187 @@
+schema: sentinel.policy/1
+policy_id: sentinel-default
+description: Acme Retail SupportBot default policy, v1
+default_outcome: block
+
+settings:
+  approval_ttl_s: 900
+  execution_token_ttl_s: 60
+  internal_domains: [acme.example]
+  llm:
+    enabled: true
+    timeout_ms: 3000
+    breaker_failures: 3
+    breaker_cooldown_s: 30
+    tighten_min_confidence: 70
+    on_failure: rules_only          # hold_allow is a Stretch option
+  breachpath:
+    edge_traversal: {}              # e.g. {network_reachable: false} to ignore a type
+
+impact:
+  factors:
+    - {id: IMP-SENS, source: action.sensitivity, map: {low: low, medium: medium, high: high}}
+    - {id: IMP-RECORDS, source: action.record_count, steps: [{gte: 50, level: high}, {gte: 10, level: medium}]}
+    - {id: IMP-IRREV, when: {field: action.reversible, op: eq, value: false}, level: medium}
+    - {id: IMP-EXTERNAL, when: {field: action.destination_external, op: eq, value: true}, level: high}
+
+constraints:
+  global:
+    protected_value_scan: true      # AG-CON-PROTECTED, floor invariant
+    forbidden_patterns:
+      - {id: FP-SQL, regex: '(?i)\b(drop|truncate)\s+table\b', applies_to: [db.read, db.update, db.delete]}
+  per_action:
+    email.send:
+      deny_domains: [pastebin.example, mailinator.example, blocked.example]
+      max_recipients: 20
+    db.read:   {max_records_hard: 500}
+    db.update: {max_records_hard: 100}
+    db.delete: {max_records_hard: 100}
+
+action_rules:
+  # ---- allow rules: necessary to allow, overridden by any stricter match ----
+  - id: AG-R-A01
+    priority: 100
+    outcome: allow
+    reason: Fetching a page is low impact
+    when: {field: action.type, op: eq, value: web.fetch}
+  - id: AG-R-A02
+    priority: 101
+    outcome: allow
+    reason: Reading reviews is low impact. Content is screened at ingress
+    when: {field: action.type, op: eq, value: reviews.read}
+  - id: AG-R-A03
+    priority: 102
+    outcome: allow
+    reason: Small customer read in a clean session
+    when:
+      all:
+        - {field: action.type, op: eq, value: db.read}
+        - {field: session.taint_level, op: eq, value: 0}
+        - {field: action.record_count, op: lte, value: 20}
+  - id: AG-R-A04
+    priority: 103
+    outcome: allow
+    reason: Email to internal recipients only
+    when:
+      all:
+        - {field: action.type, op: eq, value: email.send}
+        - {field: action.destination_external, op: eq, value: false}
+  - id: AG-R-A05
+    priority: 104
+    outcome: allow
+    reason: Small account update
+    when:
+      all:
+        - {field: action.type, op: eq, value: db.update}
+        - {field: action.record_count, op: lte, value: 10}
+
+  # ---- hold rules ----
+  - id: AG-R-H01
+    priority: 10
+    outcome: hold
+    reason: External recipient requires human approval
+    when:
+      all:
+        - {field: action.type, op: eq, value: email.send}
+        - {field: action.destination_external, op: eq, value: true}
+  - id: AG-R-H02
+    priority: 11
+    outcome: hold
+    reason: Flagged session, all outbound email needs approval (X-01)
+    when:
+      all:
+        - {field: action.type, op: eq, value: email.send}
+        - {field: session.taint_level, op: gte, value: 2}
+  - id: AG-R-H03
+    priority: 12
+    outcome: hold
+    reason: High-sensitivity read in a tainted session or above the automatic row limit (X-01)
+    when:
+      all:
+        - {field: action.type, op: eq, value: db.read}
+        - {field: action.sensitivity, op: gte, value: high}
+        - any:
+            - {field: session.taint_level, op: gte, value: 1}
+            - {field: action.record_count, op: gt, value: 20}
+  - id: AG-R-H04
+    priority: 13
+    outcome: hold
+    reason: Irreversible bulk delete requires approval
+    when:
+      all:
+        - {field: action.type, op: eq, value: db.delete}
+        - {field: action.reversible, op: eq, value: false}
+        - {field: action.record_count, op: gt, value: 1}
+  - id: AG-R-H05
+    priority: 14
+    outcome: hold
+    reason: Action on a node on an attack path to a sensitive asset while the session is tainted (X-02)
+    when:
+      all:
+        - {field: blast.level, op: eq, value: high}
+        - {field: session.taint_level, op: gte, value: 1}
+  - id: AG-R-H06
+    priority: 15
+    outcome: hold
+    reason: Account changes in a flagged session need approval
+    when:
+      all:
+        - {field: action.type, op: eq, value: db.update}
+        - {field: session.taint_level, op: gte, value: 2}
+  - id: AG-R-H07
+    priority: 16
+    outcome: hold
+    reason: Update above the automatic row limit
+    when:
+      all:
+        - {field: action.type, op: eq, value: db.update}
+        - {field: action.record_count, op: gt, value: 10}
+  - id: AG-R-H08
+    priority: 17
+    outcome: hold
+    reason: Fetching in a flagged session could carry data in the URL
+    when:
+      all:
+        - {field: action.type, op: eq, value: web.fetch}
+        - {field: session.taint_level, op: gte, value: 2}
+  - id: AG-R-H09
+    priority: 18
+    outcome: hold
+    reason: Irreversible action with high impact
+    when:
+      all:
+        - {field: action.reversible, op: eq, value: false}
+        - {field: impact.level, op: eq, value: high}
+
+  # ---- block rules ----
+  - id: AG-R-B01
+    priority: 1
+    outcome: block
+    reason: Deletes are refused in a flagged session
+    when:
+      all:
+        - {field: action.type, op: eq, value: db.delete}
+        - {field: session.taint_level, op: gte, value: 2}
+
+policy_rules:
+  - id: PC-R-001
+    priority: 10
+    outcome: hold
+    reason: Every policy change needs approval from a different admin
+    when: {field: diff.size, op: gte, value: 0}
+  - id: PC-R-002
+    priority: 1
+    outcome: block
+    reason: Only admins may propose policy changes
+    when: {field: proposer.is_admin, op: eq, value: false}
+
+ingress:
+  thresholds:
+    band_min: 40
+    act_min: 60
+    high_impact_types: [exfil_target, protected_value, extraction]
+  table:
+    developer:          {override: allow, extraction: allow, exfil_target: allow, protected_value: allow, hidden_content: allow, directive: allow}
+    user:               {override: block, extraction: block, exfil_target: escalate, protected_value: block, hidden_content: sanitize, directive: allow}
+    retrieved_document: {override: sanitize, extraction: sanitize, exfil_target: sanitize, protected_value: sanitize, hidden_content: sanitize, directive: sanitize}
+    tool_output:        {override: sanitize, extraction: sanitize, exfil_target: sanitize, protected_value: sanitize, hidden_content: sanitize, directive: sanitize}
