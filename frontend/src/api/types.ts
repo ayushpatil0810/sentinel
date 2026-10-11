@@ -46,12 +46,16 @@ export interface Session {
   taint_reasons?: string[]
 }
 
+export type SourceTier = "user" | "retrieved_document" | "tool_output" | "developer"
+
 export interface Finding {
   type: string
   confidence_pct: number
   detector: string
   start: number
   end: number
+  start_char?: number
+  end_char?: number
   evidence: string
   encoding?: string
 }
@@ -377,7 +381,7 @@ export interface BlastRadius {
   node_id: string
   on_attack_path: boolean
   paths_count: number
-  min_distance_to_sensitive?: number
+  min_distance_to_sensitive?: number | null
   max_sensitivity_reachable?: string
   level: "low" | "medium" | "high"
   reason: string | null
@@ -399,18 +403,12 @@ export interface BenchmarkMetrics {
   recall: { value: number; ci95?: [number, number] }
   f1: number
   fpr: { value: number; ci95?: [number, number] }
-  per_category: Record<string, {
-    total: number
-    tp?: number
-    fn?: number
-    recall?: number
-  }>
-  per_tier: Record<string, {
-    total: number
-    recall?: number
-    tp?: number
-    fn?: number
-  }>
+  per_category: Record<string, number | { total: number; recall?: number }>
+  per_tier: Record<string, number | { total: number; recall?: number }>
+  direct_vs_indirect?: {
+    direct_recall?: number
+    indirect_recall?: number
+  }
   sanitize_quality?: {
     cases: number
     preserved_pct: number

@@ -319,9 +319,9 @@ export const api = {
       path: { v },
     }) as Promise<PolicyDocument>,
   policyDiff: (from: number, to: number) =>
-    call("GET /api/v1/policy/diff", { query: { from, to } }) as Promise<{
-      ops: unknown[]
-    }>,
+    call("GET /api/v1/policy/diff", { query: { from, to } }).then((r) =>
+      Array.isArray(r) ? r : (r as { ops?: unknown[] })?.ops || [],
+    ) as Promise<{ op: string; path: string; value?: unknown }[]>,
   proposePolicy: (base_version: number, policyDoc: unknown, note: string) =>
     call("POST /api/v1/policy/proposals", {
       body: {
