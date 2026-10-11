@@ -17,6 +17,8 @@ def main() -> None:
 
     env = os.environ.copy()
     env["SENTINEL_DB"] = env.get("SENTINEL_DB", "sentinel.db")
+    env["SENTINEL_API"] = env.get("SENTINEL_API", "http://localhost:8000")
+    env["VITE_API_BASE_URL"] = env.get("VITE_API_BASE_URL", "/")
 
     print("Starting Sentinel backend on http://localhost:8000 ...")
     backend_cmd = [

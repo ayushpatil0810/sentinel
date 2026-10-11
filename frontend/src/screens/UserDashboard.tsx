@@ -148,7 +148,10 @@ export default function UserDashboard() {
     const loadDecisions = async () => {
       try {
         const res = await api.decisions({ limit: 10 })
-        if (!cancel) setDecisions(res)
+        if (!cancel) {
+          const list = Array.isArray(res) ? res : (res?.items ?? [])
+          setDecisions(list)
+        }
       } catch {
         /* ignore */
       }
@@ -168,7 +171,10 @@ export default function UserDashboard() {
       setApprovalsLoading(true)
       try {
         const res = await api.approvals({ status: 'pending' })
-        if (!cancel) setPendingApprovals(res)
+        if (!cancel) {
+          const list = Array.isArray(res) ? res : (res?.items ?? [])
+          setPendingApprovals(list)
+        }
       } catch {
         /* ignore */
       } finally {
@@ -197,11 +203,18 @@ export default function UserDashboard() {
       setApprovalComment('')
       // refresh pending list
       const res = await api.approvals({ status: 'pending' })
-      setPendingApprovals(res)
+      setPendingApprovals(Array.isArray(res) ? res : ((res as any)?.items ?? []))
     } catch (e: any) {
       notify(e?.message || `Failed to ${decision} approval.`, 'error')
     }
   }
+
+  const decisionList: DecisionItem[] = Array.isArray(decisions)
+    ? decisions
+    : (((decisions as any)?.items as DecisionItem[]) ?? [])
+  const approvalList: ApprovalSummary[] = Array.isArray(pendingApprovals)
+    ? pendingApprovals
+    : (((pendingApprovals as any)?.items as ApprovalSummary[]) ?? [])
 
   return (
     <div className="flex flex-col h-full bg-ink text-fg overflow-hidden">
@@ -383,9 +396,9 @@ export default function UserDashboard() {
               }`}
             >
               <span>Approvals Queue</span>
-              {pendingApprovals.length > 0 && (
+              {approvalList.length > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-hold text-ink font-bold">
-                  {pendingApprovals.length}
+                  {approvalList.length}
                 </span>
               )}
             </button>
@@ -399,14 +412,14 @@ export default function UserDashboard() {
                 <span className="text-xs font-mono text-dim">Auto-refreshing</span>
               </div>
 
-              {decisions.length === 0 ? (
+              {decisionList.length === 0 ? (
                 <EmptyState
                   title="No actions recorded yet"
                   hint="Ask SupportBot to perform an action (e.g. refund, email, lookup) to see evaluation results here."
                 />
               ) : (
                 <div className="space-y-2.5">
-                  {decisions.map((d) => (
+                  {decisionList.map((d) => (
                     <div
                       key={d.action_id}
                       className="p-3 rounded-md border border-line bg-raised hover:border-line-strong transition-colors space-y-2 text-xs"
@@ -457,20 +470,20 @@ export default function UserDashboard() {
                 /* Approver Interactive Queue */
                 <div className="space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-line">
-                    <span className="eyebrow text-faint">Pending Approvals ({pendingApprovals.length})</span>
+                    <span className="eyebrow text-faint">Pending Approvals ({approvalList.length})</span>
                     <span className="text-xs font-mono text-dim">Review &amp; Authorize</span>
                   </div>
 
-                  {approvalsLoading && pendingApprovals.length === 0 && <Skeleton rows={4} />}
+                  {approvalsLoading && approvalList.length === 0 && <Skeleton rows={4} />}
 
-                  {!approvalsLoading && pendingApprovals.length === 0 && (
+                  {!approvalsLoading && approvalList.length === 0 && (
                     <EmptyState
                       title="No pending approvals"
                       hint="When an action is held by policy for high risk or blast radius, it appears here."
                     />
                   )}
 
-                  {pendingApprovals.map((a) => {
+                  {approvalList.map((a) => {
                     const isSelf = a.requester === user?.user_id
                     return (
                       <div

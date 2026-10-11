@@ -12,6 +12,11 @@ services:
       SENTINEL_APPROVAL_KEY: demo-approval-key-change-me
       SENTINEL_EXEC_KEY: demo-exec-key-change-me
       SENTINEL_AGENT_PEPPER: demo-pepper-change-me
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      AGENT_MODE: ${AGENT_MODE:-simulation}
+      GUARD_MODE: ${GUARD_MODE:-live}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-5}
     volumes:
       - "./data:/app/data"
     command: >

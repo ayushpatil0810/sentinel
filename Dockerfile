@@ -12,6 +12,7 @@ RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy frontend source and build
 COPY frontend/ ./
+ENV VITE_API_BASE_URL=/
 RUN pnpm build
 
 # Stage 2: Python Backend Runtime
