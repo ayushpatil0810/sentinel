@@ -1,7 +1,7 @@
 import type React from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { api, DEMO_MODE, setToken } from '../api/client'
-import { ApiError, type Health, type LedgerVerify, type LlmMode, type LlmModeName, type Session, type User } from '../api/types'
+import { ApiError, type Health, type LedgerVerify, type LlmMode, type LlmModeName, type Session, type SystemStatus, type User } from '../api/types'
 
 export interface Toast {
   id: number
@@ -16,6 +16,8 @@ interface Ctx {
   users: User[]
   switchUser: (userId: string) => Promise<void>
   health: Health | null
+  systemStatus: SystemStatus | null
+  refreshSystemStatus: () => Promise<void>
   llm: LlmMode | null
   setLlm: (m: LlmModeName) => Promise<void>
   session: Session | null
@@ -44,12 +46,13 @@ export const useApp = () => {
   return c
 }
 
-// The switcher shows these three demo personas. Roles come from the server's /users list when it answers.
-const SWITCHER_IDS = ['alice', 'bob', 'admin']
+// The switcher shows these demo personas. Roles come from the server's /users list when it answers.
+const SWITCHER_IDS = ['alice', 'bob', 'admin', 'dana']
 const FALLBACK_USERS: User[] = [
   { user_id: 'alice', display_name: 'Alice', roles: ['requester'] },
   { user_id: 'bob', display_name: 'Bob', roles: ['approver'] },
-  { user_id: 'admin', display_name: 'Admin', roles: ['admin'] },
+  { user_id: 'admin', display_name: 'Admin', roles: ['admin', 'approver'] },
+  { user_id: 'dana', display_name: 'Dana', roles: ['admin', 'approver'] },
 ]
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -57,6 +60,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>(FALLBACK_USERS)
   const [ledgerVerify, setLedgerVerify] = useState<LedgerVerify | null>(null)
   const [health, setHealth] = useState<Health | null>(null)
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null)
   const [llm, setLlmState] = useState<LlmMode | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [pendingApprovals, setPending] = useState(0)
@@ -134,7 +138,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [session])
 
-  // Global poll: health, llm mode, pending approvals.
+  const refreshSystemStatus = useCallback(async () => {
+    try {
+      setSystemStatus(await api.systemStatus())
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  // Global poll: health, llm mode, pending approvals, system status.
   const [tick, setTick] = useState(0)
   useEffect(() => {
     if (!user) return
@@ -142,11 +154,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const run = async () => {
       if (document.hidden) return
       try {
-        const [h, l, a] = await Promise.all([api.health(), api.llmMode(), api.approvals({ status: 'pending' })])
+        const [h, l, a, s] = await Promise.all([
+          api.health(),
+          api.llmMode(),
+          api.approvals({ status: 'pending' }),
+          api.systemStatus().catch(() => null),
+        ])
         if (stop) return
         setHealth(h)
         setLlmState(l)
         setPending(a.length)
+        if (s) setSystemStatus(s)
         setOffline(false)
       } catch (e) {
         if (e instanceof ApiError && e.network) setOffline(true)
@@ -190,6 +208,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       users,
       switchUser,
       health,
+      systemStatus,
+      refreshSystemStatus,
       llm,
       setLlm,
       session,
@@ -210,7 +230,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ledgerVerify,
       verifyLedger,
     }),
-    [user, users, switchUser, health, llm, setLlm, session, refreshSession, pendingApprovals, toasts, dismissToast, notify, reportError, offline, bootError, demoMode, ledgerVerify, verifyLedger],
+    [user, users, switchUser, health, systemStatus, refreshSystemStatus, llm, setLlm, session, refreshSession, pendingApprovals, toasts, dismissToast, notify, reportError, offline, bootError, demoMode, ledgerVerify, verifyLedger],
   )
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>
 }

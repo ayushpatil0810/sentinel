@@ -81,6 +81,7 @@ def login(req: LoginRequest) -> dict[str, Any]:
             "display_name": row["display_name"],
             "roles": roles,
         },
+        "redirect_to": "/admin" if "admin" in roles else "/user",
         "expires_in": settings.human_token_ttl_s,
     }
 

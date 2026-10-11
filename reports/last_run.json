@@ -1,8 +1,8 @@
 {
-  "run_id": "run_20261011_115926",
-  "ts": "2026-10-11T11:59:26.313158+00:00",
+  "run_id": "run_20261011_122101",
+  "ts": "2026-10-11T12:21:01.496814+00:00",
   "totals": {
-    "passed": 112,
+    "passed": 117,
     "failed": 0,
     "skipped": 0
   },
@@ -11,14 +11,14 @@
       {
         "test": "test_T_PE_01_deterministic_evaluation",
         "status": "passed",
-        "duration_ms": 2.7
+        "duration_ms": 2.2
       }
     ],
     "PE-02": [
       {
         "test": "test_T_PE_02_deny_overrides",
         "status": "passed",
-        "duration_ms": 0.1
+        "duration_ms": 0.2
       }
     ],
     "PE-03": [
@@ -32,31 +32,31 @@
       {
         "test": "test_T_PE_04_policy_immutability",
         "status": "passed",
-        "duration_ms": 0.2
+        "duration_ms": 0.3
       },
       {
         "test": "test_UI_07_policy_editor_flow",
         "status": "passed",
-        "duration_ms": 25.3
+        "duration_ms": 51.7
       }
     ],
     "PE-05": [
       {
         "test": "test_T_PE_07_lint_invariants",
         "status": "passed",
-        "duration_ms": 0.6
+        "duration_ms": 0.7
       }
     ],
     "PE-06": [
       {
         "test": "test_T_X_07_policy_proposals_gated",
         "status": "passed",
-        "duration_ms": 18.3
+        "duration_ms": 39.1
       },
       {
         "test": "test_UI_07_policy_editor_flow",
         "status": "passed",
-        "duration_ms": 25.3
+        "duration_ms": 51.7
       }
     ],
     "PE-07": [
@@ -70,103 +70,103 @@
       {
         "test": "test_T_LG_01_genesis_and_entry1_vectors",
         "status": "passed",
-        "duration_ms": 0.1
+        "duration_ms": 0.2
       }
     ],
     "LG-02": [
       {
         "test": "test_T_LG_01_genesis_and_entry1_vectors",
         "status": "passed",
-        "duration_ms": 0.1
+        "duration_ms": 0.2
       }
     ],
     "LG-03": [
       {
         "test": "test_T_LG_02_verify_clean_chain",
         "status": "passed",
-        "duration_ms": 0.2
+        "duration_ms": 0.1
       },
       {
         "test": "test_T_LG_03_tamper_detected",
         "status": "passed",
-        "duration_ms": 0.5
+        "duration_ms": 0.4
       }
     ],
     "LG-04": [
       {
         "test": "test_T_LG_01_genesis_and_entry1_vectors",
         "status": "passed",
-        "duration_ms": 0.1
+        "duration_ms": 0.2
       }
     ],
     "LG-05": [
       {
         "test": "test_T_LG_03_tamper_detected",
         "status": "passed",
-        "duration_ms": 0.5
+        "duration_ms": 0.4
       }
     ],
     "LG-07": [
       {
         "test": "test_T_LG_08_concurrent_appends",
         "status": "passed",
-        "duration_ms": 6.3
+        "duration_ms": 9.8
       }
     ],
     "LA-01": [
       {
         "test": "test_T_LA_01_schema_validation",
         "status": "passed",
-        "duration_ms": 2.5
+        "duration_ms": 7.0
       }
     ],
     "LA-02": [
       {
         "test": "test_T_LA_02_circuit_breaker",
         "status": "passed",
-        "duration_ms": 1.4
+        "duration_ms": 8.5
       }
     ],
     "LA-03": [
       {
         "test": "test_T_LA_03_mock_modes",
         "status": "passed",
-        "duration_ms": 4.9
+        "duration_ms": 10.6
       }
     ],
     "LA-04": [
       {
         "test": "test_T_LA_04_monotonic_tightening",
         "status": "passed",
-        "duration_ms": 0.1
+        "duration_ms": 0.2
       }
     ],
     "LA-05": [
       {
         "test": "test_T_LA_03_mock_modes",
         "status": "passed",
-        "duration_ms": 4.9
+        "duration_ms": 10.6
       }
     ],
     "SS-01": [
       {
         "test": "test_T_SS_01_monotonic_taint",
         "status": "passed",
-        "duration_ms": 0.5
+        "duration_ms": 0.8
       }
     ],
     "SS-02": [
       {
         "test": "test_T_SS_01_monotonic_taint",
         "status": "passed",
-        "duration_ms": 0.5
+        "duration_ms": 0.8
       }
     ],
     "SS-03": [
       {
         "test": "test_T_SS_03_human_reset_taint",
         "status": "passed",
-        "duration_ms": 0.7
+        "duration_ms": 0.5
       }
     ],
     "SS-04": [
@@ -180,21 +180,21 @@
       {
         "test": "test_T_AU_01_two_planes_separation",
         "status": "passed",
-        "duration_ms": 4.3
+        "duration_ms": 4.7
       }
     ],
     "AU-02": [
       {
         "test": "test_T_AU_01_two_planes_separation",
         "status": "passed",
-        "duration_ms": 4.3
+        "duration_ms": 4.7
       }
     ],
     "AU-03": [
       {
         "test": "test_T_AU_01_two_planes_separation",
         "status": "passed",
-        "duration_ms": 4.3
+        "duration_ms": 4.7
       }
     ],
     "AU-04": [
@@ -208,68 +208,68 @@
       {
         "test": "test_T_AG_01_unregistered_and_suspended_agent",
         "status": "passed",
-        "duration_ms": 0.4
+        "duration_ms": 0.5
       }
     ],
     "AG-02": [
       {
         "test": "test_T_AG_02_unregistered_and_disallowed_action",
         "status": "passed",
-        "duration_ms": 0.8
+        "duration_ms": 1.2
       }
     ],
     "AG-03": [
       {
         "test": "test_T_AG_03_argument_and_constraint_violations",
         "status": "passed",
-        "duration_ms": 11.3
+        "duration_ms": 12.3
       },
       {
         "test": "test_T_X_05_egress_canary_scan",
         "status": "passed",
-        "duration_ms": 14.3
+        "duration_ms": 48.2
       }
     ],
     "AG-04": [
       {
         "test": "test_T_AG_04_record_count_thresholds",
         "status": "passed",
-        "duration_ms": 11.2
+        "duration_ms": 18.7
       }
     ],
     "AG-05": [
       {
         "test": "test_T_AG_05_reversibility_and_deletes",
         "status": "passed",
-        "duration_ms": 9.8
+        "duration_ms": 16.5
       }
     ],
     "AG-06": [
       {
         "test": "test_T_AG_06_approval_binding_and_mutation",
         "status": "passed",
-        "duration_ms": 16.2
+        "duration_ms": 24.7
       }
     ],
     "AG-07": [
       {
         "test": "test_T_AG_07_self_approval_refused",
         "status": "passed",
-        "duration_ms": 0.5
+        "duration_ms": 1.4
       }
     ],
     "AG-08": [
       {
         "test": "test_T_AG_08_ledger_entry_per_decision",
         "status": "passed",
-        "duration_ms": 32.0
+        "duration_ms": 44.1
       }
     ],
     "AG-09": [
       {
         "test": "test_T_AG_09_llm_fallback",
         "status": "passed",
-        "duration_ms": 2.2
+        "duration_ms": 2.1
       }
     ],
     "AG-10": [
@@ -283,66 +283,66 @@
       {
         "test": "test_T_AG_11_executors_isolated_to_gateway",
         "status": "passed",
-        "duration_ms": 5.9
+        "duration_ms": 7.5
       }
     ],
     "AG-12": [
       {
         "test": "test_T_AG_12_taint_tightens_decision",
         "status": "passed",
-        "duration_ms": 7.8
+        "duration_ms": 12.7
       },
       {
         "test": "test_T_X_01_taint_tightens_action",
         "status": "passed",
-        "duration_ms": 17.2
+        "duration_ms": 84.5
       }
     ],
     "AG-13": [
       {
         "test": "test_T_X_02_blast_radius_tightens_action",
         "status": "passed",
-        "duration_ms": 8.0
+        "duration_ms": 61.8
       }
     ],
     "AG-14": [
       {
         "test": "test_T_AG_14_single_use_and_expiry",
         "status": "passed",
-        "duration_ms": 9.3
+        "duration_ms": 16.1
       }
     ],
     "AG-15": [
       {
         "test": "test_T_AG_06_approval_binding_and_mutation",
         "status": "passed",
-        "duration_ms": 16.2
+        "duration_ms": 24.7
       }
     ],
     "AG-16": [
       {
         "test": "test_T_AG_06_approval_binding_and_mutation",
         "status": "passed",
-        "duration_ms": 16.2
+        "duration_ms": 24.7
       }
     ],
     "BP-01": [
       {
         "test": "test_T_BP_01_validation_seed_and_invalid_fixtures",
         "status": "passed",
-        "duration_ms": 0.9
+        "duration_ms": 1.2
       },
       {
         "test": "test_UI_04_attack_graph_screen_flow",
         "status": "passed",
-        "duration_ms": 50.9
+        "duration_ms": 106.2
       }
     ],
     "BP-02": [
       {
         "test": "test_T_BP_02_bad_graph_rejection_no_invented_nodes",
         "status": "passed",
-        "duration_ms": 3.3
+        "duration_ms": 3.6
       }
     ],
     "BP-03": [
@@ -356,19 +356,19 @@
       {
         "test": "test_T_BP_04_max_depth_routes",
         "status": "passed",
-        "duration_ms": 0.7
+        "duration_ms": 0.8
       },
       {
         "test": "test_UI_04_attack_graph_screen_flow",
         "status": "passed",
-        "duration_ms": 50.9
+        "duration_ms": 106.2
       }
     ],
     "BP-05": [
       {
         "test": "test_T_BP_05_route_ordered_steps",
         "status": "passed",
-        "duration_ms": 0.3
+        "duration_ms": 0.4
       }
     ],
     "BP-06": [
@@ -382,33 +382,33 @@
       {
         "test": "test_T_BP_07_remediation_candidates_and_ranking",
         "status": "passed",
-        "duration_ms": 2.3
+        "duration_ms": 2.4
       }
     ],
     "BP-08": [
       {
         "test": "test_T_BP_08_user_decided_apply",
         "status": "passed",
-        "duration_ms": 7.4
+        "duration_ms": 8.0
       },
       {
         "test": "test_UI_04_attack_graph_screen_flow",
         "status": "passed",
-        "duration_ms": 50.9
+        "duration_ms": 106.2
       }
     ],
     "BP-09": [
       {
         "test": "test_T_BP_09_diff_correctness_seed_changes",
         "status": "passed",
-        "duration_ms": 1.6
+        "duration_ms": 1.9
       }
     ],
     "BP-10": [
       {
         "test": "test_T_BP_10_truncation_honesty",
         "status": "passed",
-        "duration_ms": 0.3
+        "duration_ms": 0.2
       }
     ],
     "BP-11": [
@@ -420,7 +420,7 @@
       {
         "test": "test_T_X_03_derived_entry_points",
         "status": "passed",
-        "duration_ms": 5.0
+        "duration_ms": 21.4
       }
     ],
     "BP-12": [
@@ -432,21 +432,21 @@
       {
         "test": "test_UI_04_attack_graph_screen_flow",
         "status": "passed",
-        "duration_ms": 50.9
+        "duration_ms": 106.2
       }
     ],
     "BP-14": [
       {
         "test": "test_T_BP_14_versioning_and_ledger",
         "status": "passed",
-        "duration_ms": 4.0
+        "duration_ms": 3.8
       }
     ],
     "BP-15": [
       {
         "test": "test_T_BP_15_limits_and_unreadable_files",
         "status": "passed",
-        "duration_ms": 4.4
+        "duration_ms": 3.6
       }
     ],
     "BP-17": [
@@ -467,14 +467,14 @@
       {
         "test": "test_PS01_tier_specific_outcomes",
         "status": "passed",
-        "duration_ms": 13.4
+        "duration_ms": 38.1
       }
     ],
     "PS-02": [
       {
         "test": "test_PS02_override_variants",
         "status": "passed",
-        "duration_ms": 0.3
+        "duration_ms": 0.4
       }
     ],
     "PS-03": [
@@ -488,76 +488,76 @@
       {
         "test": "test_PS04_exfil_target_variants",
         "status": "passed",
-        "duration_ms": 0.3
+        "duration_ms": 0.4
       }
     ],
     "PS-05": [
       {
         "test": "test_PS05_canary_encodings",
         "status": "passed",
-        "duration_ms": 0.8
+        "duration_ms": 1.1
       }
     ],
     "PS-06": [
       {
         "test": "test_PS06_outcome_table_update_and_versioning",
         "status": "passed",
-        "duration_ms": 13.5
+        "duration_ms": 24.5
       },
       {
         "test": "test_UI_05_promptshield_lab_flow",
         "status": "passed",
-        "duration_ms": 18.9
+        "duration_ms": 43.8
       }
     ],
     "PS-07": [
       {
         "test": "test_PS07_sanitizer_rv_p2_and_edge_cases",
         "status": "passed",
-        "duration_ms": 2.9
+        "duration_ms": 7.3
       },
       {
         "test": "test_UI_05_promptshield_lab_flow",
         "status": "passed",
-        "duration_ms": 18.9
+        "duration_ms": 43.8
       }
     ],
     "PS-08": [
       {
         "test": "test_PS08_benchmark_honesty",
         "status": "passed",
-        "duration_ms": 75.4
+        "duration_ms": 140.1
       },
       {
         "test": "test_UI_06_benchmark_screen_flow",
         "status": "passed",
-        "duration_ms": 86.6
+        "duration_ms": 228.5
       }
     ],
     "PS-09": [
       {
         "test": "test_PS09_untrusted_content_is_data",
         "status": "passed",
-        "duration_ms": 7.6
+        "duration_ms": 29.1
       }
     ],
     "PS-10": [
       {
         "test": "test_PS10_taint_table_and_ledger_seq",
         "status": "passed",
-        "duration_ms": 36.0
+        "duration_ms": 32.4
       },
       {
         "test": "test_UI_05_promptshield_lab_flow",
         "status": "passed",
-        "duration_ms": 18.9
+        "duration_ms": 43.8
       }
     ],
     "PS-11": [
       {
         "test": "test_PS11_hidden_content_variants",
         "status": "passed",
-        "duration_ms": 0.3
+        "duration_ms": 0.2
       }
     ],
     "PS-12": [
@@ -571,319 +571,352 @@
       {
         "test": "test_PS13_tricky_benign_cases_and_framing_floors",
         "status": "passed",
-        "duration_ms": 11.9
+        "duration_ms": 20.7
       }
     ],
     "PS-14": [
       {
         "test": "test_PS14_llm_advisory_tighten_and_fallback",
         "status": "passed",
-        "duration_ms": 3506.3
+        "duration_ms": 3512.5
       }
     ],
     "PS-15": [
       {
         "test": "test_PS15_escalation_review_queue_and_release",
         "status": "passed",
-        "duration_ms": 35.7
+        "duration_ms": 50.2
       }
     ],
     "PS-16": [
       {
         "test": "test_PS16_payload_size_bounds_and_redos",
         "status": "passed",
-        "duration_ms": 48.6
+        "duration_ms": 89.0
       }
     ],
     "X-01": [
       {
         "test": "test_T_AG_12_taint_tightens_decision",
         "status": "passed",
-        "duration_ms": 7.8
+        "duration_ms": 12.7
       },
       {
         "test": "test_T_X_01_taint_tightens_action",
         "status": "passed",
-        "duration_ms": 17.2
+        "duration_ms": 84.5
       }
     ],
     "X-02": [
       {
         "test": "test_T_X_02_blast_radius_tightens_action",
         "status": "passed",
-        "duration_ms": 8.0
+        "duration_ms": 61.8
       }
     ],
     "X-03": [
       {
         "test": "test_T_X_03_derived_entry_points",
         "status": "passed",
-        "duration_ms": 5.0
+        "duration_ms": 21.4
       },
       {
         "test": "test_UI_04_attack_graph_screen_flow",
         "status": "passed",
-        "duration_ms": 50.9
+        "duration_ms": 106.2
       }
     ],
     "X-05": [
       {
         "test": "test_T_X_05_egress_canary_scan",
         "status": "passed",
-        "duration_ms": 14.3
+        "duration_ms": 48.2
       }
     ],
     "X-06": [
       {
         "test": "test_T_X_06_shared_ledger_and_policy",
         "status": "passed",
-        "duration_ms": 34.6
+        "duration_ms": 82.2
       }
     ],
     "X-07": [
       {
         "test": "test_T_X_07_policy_proposals_gated",
         "status": "passed",
-        "duration_ms": 18.3
+        "duration_ms": 39.1
       },
       {
         "test": "test_UI_07_policy_editor_flow",
         "status": "passed",
-        "duration_ms": 25.3
+        "duration_ms": 51.7
       }
     ],
     "SD-01": [
       {
         "test": "test_T_SD_01_seed_data_counts",
         "status": "passed",
-        "duration_ms": 115.9
+        "duration_ms": 355.0
       }
     ],
     "SD-02": [
       {
         "test": "test_T_SD_01_seed_data_counts",
         "status": "passed",
-        "duration_ms": 115.9
+        "duration_ms": 355.0
       }
     ],
     "SD-03": [
       {
         "test": "test_T_SD_01_seed_data_counts",
         "status": "passed",
-        "duration_ms": 115.9
+        "duration_ms": 355.0
       }
     ],
     "SD-04": [
       {
         "test": "test_T_SD_01_seed_data_counts",
         "status": "passed",
-        "duration_ms": 115.9
+        "duration_ms": 355.0
       }
     ],
     "SD-05": [
       {
         "test": "test_T_SD_01_seed_data_counts",
         "status": "passed",
-        "duration_ms": 115.9
+        "duration_ms": 355.0
       }
     ],
     "SD-06": [
       {
         "test": "test_T_SD_02_benchmark_file",
         "status": "passed",
-        "duration_ms": 0.5
+        "duration_ms": 1.1
       }
     ],
     "SD-07": [
       {
         "test": "test_T_SD_03_seed_determinism",
         "status": "passed",
-        "duration_ms": 204.0
+        "duration_ms": 855.1
       }
     ],
     "DEMO-01": [
       {
         "test": "test_T_E2E_01_scripted_replay",
         "status": "passed",
-        "duration_ms": 318.7
+        "duration_ms": 524.3
       },
       {
         "test": "test_T_E2E_02_replay_determinism",
         "status": "passed",
-        "duration_ms": 589.6
+        "duration_ms": 987.0
       }
     ],
     "DEMO-02": [
       {
         "test": "test_T_E2E_01_scripted_replay",
         "status": "passed",
-        "duration_ms": 318.7
+        "duration_ms": 524.3
       }
     ],
     "DEMO-03": [
       {
         "test": "test_T_E2E_03_replay_speed",
         "status": "passed",
-        "duration_ms": 290.0
+        "duration_ms": 564.2
       }
     ],
     "D-23": [
       {
         "test": "test_T_LG_01_genesis_and_entry1_vectors",
         "status": "passed",
-        "duration_ms": 0.1
+        "duration_ms": 0.2
       }
     ],
     "PS-17": [
       {
         "test": "test_PS17_benchmark_direct_vs_indirect_reporting",
         "status": "passed",
-        "duration_ms": 79.0
+        "duration_ms": 201.2
       }
     ],
     "UI-01": [
       {
         "test": "test_UI_01_sandbox_interaction",
         "status": "passed",
-        "duration_ms": 28.2
+        "duration_ms": 60.1
       },
       {
         "test": "test_sandbox_message_end_to_end_flow",
         "status": "passed",
-        "duration_ms": 14.4
+        "duration_ms": 35.9
       }
     ],
     "UI-02": [
       {
         "test": "test_UI_02_live_decisions_feed_and_drawer",
         "status": "passed",
-        "duration_ms": 7.2
+        "duration_ms": 13.9
       }
     ],
     "UI-03": [
       {
         "test": "test_UI_03_approvals_screen_flow",
         "status": "passed",
-        "duration_ms": 36.3
+        "duration_ms": 84.6
       }
     ],
     "UI-08": [
       {
         "test": "test_UI_08_audit_ledger_screen_flow",
         "status": "passed",
-        "duration_ms": 36.1
+        "duration_ms": 76.2
       }
     ],
     "UI-04": [
       {
         "test": "test_UI_04_attack_graph_screen_flow",
         "status": "passed",
-        "duration_ms": 50.9
+        "duration_ms": 106.2
       }
     ],
     "UI-05": [
       {
         "test": "test_UI_05_promptshield_lab_flow",
         "status": "passed",
-        "duration_ms": 18.9
+        "duration_ms": 43.8
       }
     ],
     "UI-06": [
       {
         "test": "test_UI_06_benchmark_screen_flow",
         "status": "passed",
-        "duration_ms": 86.6
+        "duration_ms": 228.5
       }
     ],
     "UI-07": [
       {
         "test": "test_UI_07_policy_editor_flow",
         "status": "passed",
-        "duration_ms": 25.3
+        "duration_ms": 51.7
       }
     ],
     "UI-09": [
       {
         "test": "test_UI_09_test_report_flow",
         "status": "passed",
-        "duration_ms": 1012.5
+        "duration_ms": 1020.5
       }
     ],
     "LA-06": [
       {
         "test": "test_T_LA_06_provider_interface_compliance",
         "status": "passed",
-        "duration_ms": 0.1
+        "duration_ms": 0.3
       },
       {
         "test": "test_T_LA_06_openai_classify_structured_output",
         "status": "passed",
-        "duration_ms": 0.5
+        "duration_ms": 1.2
       },
       {
         "test": "test_T_LA_06_openai_summarize_intent_structured_output",
         "status": "passed",
-        "duration_ms": 0.4
+        "duration_ms": 1.6
       },
       {
         "test": "test_T_LA_06_openai_function_calling_turn",
         "status": "passed",
-        "duration_ms": 0.4
+        "duration_ms": 1.0
       },
       {
         "test": "test_T_LA_06_openai_connection_test_success_and_failure",
         "status": "passed",
-        "duration_ms": 0.4
+        "duration_ms": 1.2
       },
       {
         "test": "test_T_LA_06_mock_provider_all_modes",
         "status": "passed",
-        "duration_ms": 0.6
+        "duration_ms": 3.1
       },
       {
         "test": "test_T_LA_06_scripted_agent_determinism",
         "status": "passed",
-        "duration_ms": 0.1
+        "duration_ms": 0.3
       }
     ],
     "AG-17": [
       {
         "test": "test_AG17_tool_definitions_validity",
         "status": "passed",
-        "duration_ms": 0.1
+        "duration_ms": 4.3
       }
     ],
     "AG-18": [
       {
         "test": "test_AG18_ingesting_tool_screening_read_reviews",
         "status": "passed",
-        "duration_ms": 7.0
+        "duration_ms": 29.4
       },
       {
         "test": "test_AG18_ingesting_tool_screening_browse_page",
         "status": "passed",
-        "duration_ms": 6.3
+        "duration_ms": 18.5
       }
     ],
     "AG-19": [
       {
         "test": "test_AG19_gateway_interception_and_llm_says_safe",
         "status": "passed",
-        "duration_ms": 6.0
+        "duration_ms": 14.0
       }
     ],
     "AG-20": [
       {
         "test": "test_AG20_bounded_autonomous_loop",
         "status": "passed",
-        "duration_ms": 20.0
+        "duration_ms": 51.1
       }
     ],
     "LA-09": [
       {
         "test": "test_LA09_auto_fallback_to_simulation",
         "status": "passed",
-        "duration_ms": 0.6
+        "duration_ms": 1.4
+      }
+    ],
+    "AU-06": [
+      {
+        "test": "test_AU06_role_routed_login",
+        "status": "passed",
+        "duration_ms": 53.4
+      }
+    ],
+    "AU-05": [
+      {
+        "test": "test_AU05_system_status_and_admin_settings_rbac",
+        "status": "passed",
+        "duration_ms": 40.8
+      },
+      {
+        "test": "test_AU05_admin_llm_settings_update_and_persistence",
+        "status": "passed",
+        "duration_ms": 23.0
+      }
+    ],
+    "LA-10": [
+      {
+        "test": "test_LA10_admin_llm_connection_test",
+        "status": "passed",
+        "duration_ms": 22.5
+      }
+    ],
+    "AU-07": [
+      {
+        "test": "test_AU07_dual_admin_policy_gate",
+        "status": "passed",
+        "duration_ms": 46.9
       }
     ]
   },

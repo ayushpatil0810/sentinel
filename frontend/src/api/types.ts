@@ -470,3 +470,42 @@ export interface TestReportResponse {
   by_requirement: Record<string, TestCaseResult[]>
   untested_requirements: string[]
 }
+
+// ── System & Admin LLM Types ──
+export interface SystemStatus {
+  agent_mode: 'live' | 'simulation'
+  guard_mode: 'live' | 'rules_only'
+  provider: string
+  provider_health: {
+    status: string
+    error?: string
+    model?: string
+  }
+  model: string
+  timeout_seconds: number
+  has_api_key: boolean
+}
+
+export interface LlmSettings {
+  agent_mode: 'live' | 'simulation'
+  guard_mode: 'live' | 'rules_only'
+  model: string
+  timeout_seconds: number
+  has_api_key: boolean
+}
+
+export interface LlmSettingsUpdate {
+  agent_mode?: 'live' | 'simulation'
+  guard_mode?: 'live' | 'rules_only'
+  model?: string
+  timeout_seconds?: number
+  api_key?: string
+}
+
+export interface LlmTestResult {
+  success: boolean
+  provider: string
+  model?: string
+  latency_ms: number
+  error?: string
+}

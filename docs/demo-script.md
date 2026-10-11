@@ -5,10 +5,18 @@ Requirements: DEMO-01 (scripted replay gives identical outcomes every run), DEMO
 ## 0. Setup (before the audience arrives)
 
 1. `make demo` (seed 1337, ledger head 3, graph version 2, policy version 1).
-2. Open http://localhost:8000. Sign in as **Alice** in the user switcher. Sandbox screen. LLM badge reads `LLM: ok`.
-3. Open the replay bar. Steps S1 to S8 show `pending`.
-4. Second window or the switcher ready for Bob, Admin.
-5. Reset path if anything looks off: `make seed` and reload (about 10 seconds).
+2. Open http://localhost:8000 (or http://localhost:5173 in frontend dev mode).
+3. **Seeded Login & Personas (`/login`):**
+   - Click one-click persona cards:
+     - **Alice (`requester`)**: Redirects to User Portal (`/user`).
+     - **Bob (`approver`)**: Redirects to User Portal (`/user`) with active Approvals Queue.
+     - **Admin (`admin`, `approver`)**: Redirects to Admin Console (`/admin`).
+     - **Dana (`admin`, `approver`)**: Redirects to Admin Console (`/admin`) for dual-admin co-approval.
+4. **Runtime Modes (Admin Console `/admin/llm`):**
+   - Default is `AGENT_MODE=simulation` (100% deterministic, offline) and `GUARD_MODE=live`.
+   - To demonstrate real OpenAI integration, set `OPENAI_API_KEY` or enter in `/admin/llm`, flip `AGENT_MODE` to `live`, and click **Test Round-Trip Connection**.
+5. Second window or top bar persona switcher ready for Bob, Admin, Dana.
+6. Reset path if anything looks off: `make seed` and reload (about 10 seconds).
 
 ## 1. Timeline
 

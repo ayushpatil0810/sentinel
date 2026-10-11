@@ -23,6 +23,10 @@ import {
   type PolicyVersionItem,
   type PolicyProposalResponse,
   type TestReportResponse,
+  type SystemStatus,
+  type LlmSettings,
+  type LlmSettingsUpdate,
+  type LlmTestResult,
 } from "./types"
 import type { Paths, Route } from "./generated"
 import * as N from "./normalize"
@@ -341,4 +345,14 @@ export const api = {
   runTests: () => call("POST /api/v1/tests/run") as Promise<{ run_id: string }>,
   testReport: () =>
     call("GET /api/v1/tests/report") as Promise<TestReportResponse>,
+
+  // ── System & Admin LLM ──
+  systemStatus: () =>
+    request("GET", "/api/v1/system/status") as Promise<SystemStatus>,
+  adminLlmSettings: () =>
+    request("GET", "/api/v1/admin/llm/settings") as Promise<LlmSettings>,
+  updateAdminLlmSettings: (body: LlmSettingsUpdate) =>
+    request("PUT", "/api/v1/admin/llm/settings", { body }) as Promise<LlmSettings>,
+  testAdminLlmConnection: () =>
+    request("POST", "/api/v1/admin/llm/test") as Promise<LlmTestResult>,
 }

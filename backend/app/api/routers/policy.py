@@ -161,7 +161,11 @@ def propose_policy_change(
     clean_doc = {k: v for k, v in req.policy.items() if not k.startswith("_")}
     fp = hashlib.sha256(canonical_json(clean_doc).encode("utf-8")).hexdigest()
 
+    conn = get_connection()
     proposal_id = next_id("prop_")
+    while fetchone(conn, "SELECT 1 FROM policy_proposals WHERE proposal_id = ?", (proposal_id,)):
+        proposal_id = next_id("prop_")
+
     ap = create_approval(
         kind="policy.update",
         fingerprint=fp,
@@ -170,7 +174,6 @@ def propose_policy_change(
     )
     approval_id = ap["approval_id"]
 
-    conn = get_connection()
     from backend.app.core.clock import get_clock
     now_iso = get_clock().now_iso()
 

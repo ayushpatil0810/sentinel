@@ -8,6 +8,13 @@ import { TaintBadge, CopyText, field } from './ui'
 
 const NAV_GROUPS = [
   {
+    label: 'Dashboards',
+    items: [
+      { to: '/user', label: 'User Portal' },
+      { to: '/admin', label: 'Admin Console' },
+    ],
+  },
+  {
     label: 'Live demo',
     items: [
       { to: '/sandbox', label: 'Agent Sandbox' },
@@ -96,7 +103,7 @@ function SystemMenu() {
 }
 
 function TopBar() {
-  const { user, users, switchUser, llm, setLlm, session } = useApp()
+  const { user, users, switchUser, llm, setLlm, session, systemStatus } = useApp()
   const [showTaint, setShowTaint] = useState(false)
   const killed = llm?.mode === 'down'
   const degraded = llm ? llm.mode !== 'ok' : false
@@ -104,15 +111,16 @@ function TopBar() {
   return (
     <header className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line bg-panel px-5 py-2">
       <div className="flex items-center gap-3">
-        <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-sm bg-fg">
-          <svg viewBox="0 0 24 24" className="h-4 w-4 text-ink" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round">
-            <path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6l-8-3Z" />
-          </svg>
-        </span>
-        <div className="leading-tight">
-          <p className="text-[15px] font-bold tracking-tight">Sentinel</p>
-          
-        </div>
+        <NavLink to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+          <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-sm bg-fg">
+            <svg viewBox="0 0 24 24" className="h-4 w-4 text-ink" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round">
+              <path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6l-8-3Z" />
+            </svg>
+          </span>
+          <div className="leading-tight">
+            <p className="text-[15px] font-bold tracking-tight">Sentinel</p>
+          </div>
+        </NavLink>
       </div>
 
       <div role="group" aria-label="Signed in as" className="flex items-center gap-1 rounded-sm border border-line p-0.5">
@@ -122,17 +130,35 @@ function TopBar() {
             onClick={() => switchUser(u.user_id)}
             aria-pressed={user?.user_id === u.user_id}
             title={u.roles.join(', ')}
-            className={`rounded-xs px-3 py-1 text-[13px] font-medium transition-colors ${user?.user_id === u.user_id ? 'bg-fg text-ink' : 'text-dim hover:text-fg'}`}
+            className={`rounded-xs px-3 py-1 text-[13px] font-medium transition-colors ${user?.user_id === u.user_id ? 'bg-fg text-ink font-semibold' : 'text-dim hover:text-fg'}`}
           >
             {u.display_name}
+            {u.roles.includes('admin') && <span className="ml-1 text-[11px] opacity-75">👑</span>}
           </button>
         ))}
       </div>
 
+      {systemStatus && (
+        <div
+          className={`hidden md:inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-mono font-medium border ${
+            systemStatus.agent_mode === 'live'
+              ? 'border-allow/50 bg-allow/10 text-allow'
+              : 'border-blue-500/50 bg-blue-500/10 text-blue-400'
+          }`}
+          title={systemStatus.agent_mode === 'live' ? `Live Model: ${systemStatus.model}` : 'Deterministic Simulation'}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              systemStatus.agent_mode === 'live' ? 'bg-allow animate-pulse' : 'bg-blue-400'
+            }`}
+          />
+          <span>{systemStatus.agent_mode === 'live' ? `LIVE (${systemStatus.model})` : 'SIMULATION'}</span>
+        </div>
+      )}
+
       <div className="ml-auto flex items-center gap-3">
         {session && (
           <div className="relative flex items-center gap-2 text-sm text-dim">
-            
             <TaintBadge taint={session.taint_label ?? session.taint_level} onClick={() => setShowTaint((v) => !v)} title="Why is the session marked this way?" />
             {showTaint && (
               <div className="rise absolute right-0 top-9 z-30 w-72 rounded-sm border border-line-strong bg-raised p-4 shadow-2xl shadow-black/60">
@@ -164,6 +190,15 @@ function TopBar() {
           </span>
           {!llm ? 'LLM …' : killed ? 'LLM off, rules only' : degraded ? `LLM degraded` : 'Kill the LLM'}
         </button>
+
+        <NavLink
+          to="/login"
+          title="Switch accounts / Login"
+          className="text-xs font-mono text-dim hover:text-fg px-2.5 py-1.5 rounded border border-line hover:border-line-strong transition-colors"
+        >
+          Login
+        </NavLink>
+
         <SystemMenu />
       </div>
     </header>

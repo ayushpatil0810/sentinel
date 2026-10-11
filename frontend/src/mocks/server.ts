@@ -823,6 +823,65 @@ const routes: [string, RegExp, Handler, boolean?][] = [
       return ok({ approval_id: a.approval_id, status: a.status, approver: user!.user_id, signature: a.signature })
     },
   ],
+  [
+    'GET',
+    /^\/api\/v1\/system\/status$/,
+    () =>
+      ok({
+        agent_mode: 'live',
+        guard_mode: 'live',
+        provider: 'openai',
+        provider_health: { status: 'healthy', model: 'gpt-4o-mini' },
+        model: 'gpt-4o-mini',
+        timeout_seconds: 5,
+        has_api_key: true,
+      }),
+    true,
+  ],
+  [
+    'GET',
+    /^\/api\/v1\/admin\/llm\/settings$/,
+    ({ user }) => {
+      if (!user?.roles.includes('admin'))
+        return err(403, 'auth.forbidden_role', 'Admin role required.', { required: ['admin'] })
+      return ok({
+        agent_mode: 'live',
+        guard_mode: 'live',
+        model: 'gpt-4o-mini',
+        timeout_seconds: 5,
+        has_api_key: true,
+      })
+    },
+  ],
+  [
+    'PUT',
+    /^\/api\/v1\/admin\/llm\/settings$/,
+    ({ user, body }) => {
+      if (!user?.roles.includes('admin'))
+        return err(403, 'auth.forbidden_role', 'Admin role required.', { required: ['admin'] })
+      return ok({
+        agent_mode: body?.agent_mode || 'live',
+        guard_mode: body?.guard_mode || 'live',
+        model: body?.model || 'gpt-4o-mini',
+        timeout_seconds: body?.timeout_seconds || 5,
+        has_api_key: true,
+      })
+    },
+  ],
+  [
+    'POST',
+    /^\/api\/v1\/admin\/llm\/test$/,
+    ({ user }) => {
+      if (!user?.roles.includes('admin'))
+        return err(403, 'auth.forbidden_role', 'Admin role required.', { required: ['admin'] })
+      return ok({
+        success: true,
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        latency_ms: 118,
+      })
+    },
+  ],
 ]
 
 export async function mockRequest(method: string, rawPath: string, query: Ctx['query'], body: unknown, token: string | null): Promise<Res> {

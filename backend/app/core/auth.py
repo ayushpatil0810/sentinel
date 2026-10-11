@@ -410,13 +410,32 @@ def require_human(authorization: str | None = Header(None)) -> HumanIdentity:
     return verify_human_token(token)
 
 
-def require_role(role: str) -> Callable[[HumanIdentity], HumanIdentity]:
-    """Dependency factory checking human user role (AU-03)."""
+def require_roles(*roles: str) -> Callable[[HumanIdentity], HumanIdentity]:
+    """Dependency factory checking human user roles (AU-03, AU-05)."""
     def _role_checker(human: HumanIdentity = Depends(require_human)) -> HumanIdentity:
-        if not human.has_role(role):
-            raise Forbidden("auth.forbidden_role", f"User does not have required role '{role}'.")
+        if not any(human.has_role(r) for r in roles):
+            ledger.append(
+                module="auth",
+                event_type="auth.refused",
+                subject=f"user:{human.user_id}",
+                outcome="block",
+                reason="forbidden_role",
+                rule_ids=[],
+                decision_path="rules",
+                policy_version=1,
+                payload={"required_roles": list(roles), "user_roles": human.roles, "user_id": human.user_id},
+            )
+            raise Forbidden("auth.forbidden_role", f"User does not have required role from {roles}.")
         return human
     return _role_checker
 
+
+def require_role(role: str) -> Callable[[HumanIdentity], HumanIdentity]:
+    """Dependency factory checking human user role (AU-03)."""
+    return require_roles(role)
+
+
+require_admin = require_roles("admin")
+require_approver = require_roles("approver", "admin")
 
 authenticate_human = require_human

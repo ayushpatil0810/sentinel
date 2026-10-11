@@ -200,6 +200,12 @@ try:
 except ImportError:
     pass
 
+try:
+    from backend.app.api.routers.system import router as system_router
+    app.include_router(system_router, prefix="/api/v1")
+except ImportError:
+    pass
+
 # ── Frontend SPA static files (production bundle) ─────────────────────────────
 _frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 if _frontend_dist.is_dir():
