@@ -12,11 +12,13 @@ CORS: allows http://localhost:5173 (Vite dev server) as required.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.app.api.routers.health import router as health_router
 from backend.app.core.errors import SentinelError, sentinel_error_handler
@@ -197,3 +199,30 @@ try:
     app.include_router(tests_router, prefix="/api/v1")
 except ImportError:
     pass
+
+# ── Frontend SPA static files (production bundle) ─────────────────────────────
+_frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+if _frontend_dist.is_dir():
+    _assets_dir = _frontend_dist / "assets"
+    if _assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(_assets_dir)), name="frontend_assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str) -> Any:
+        # Don't hijack unmatched API or agent plane routes
+        if full_path.startswith(("api/", "agent/")):
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "error": {
+                        "code": "not_found",
+                        "message": f"Endpoint /{full_path} not found.",
+                        "details": {},
+                    }
+                },
+            )
+        file_path = _frontend_dist / full_path
+        if full_path and file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(_frontend_dist / "index.html")
+

@@ -253,7 +253,27 @@ def run_seed(db_path: str = "sentinel.db") -> None:
 
 
 if __name__ == "__main__":
+    import os
     parser = argparse.ArgumentParser(description="Seed the Sentinel database.")
-    parser.add_argument("--db", default="sentinel.db", help="Path to SQLite database file")
+    parser.add_argument("--db", default=None, help="Path to SQLite database file")
+    parser.add_argument("--if-empty", action="store_true", help="Only seed if database is missing or empty")
     args = parser.parse_args()
-    run_seed(args.db)
+
+    db_path = args.db or os.environ.get("SENTINEL_DB", "sentinel.db")
+
+    if args.if_empty and db_path != ":memory:":
+        target_path = Path(db_path)
+        if target_path.exists() and target_path.stat().st_size > 0:
+            try:
+                import sqlite3
+                check_conn = sqlite3.connect(db_path)
+                cnt = check_conn.execute("SELECT count(*) FROM users").fetchone()[0]
+                check_conn.close()
+                if cnt > 0:
+                    print(f"Database {db_path} already initialized with {cnt} users. Skipping seed (--if-empty).")
+                    sys.exit(0)
+            except Exception:
+                pass
+
+    run_seed(db_path)
+
